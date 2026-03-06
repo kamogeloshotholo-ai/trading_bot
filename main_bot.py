@@ -6,7 +6,7 @@ from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
 from structure_detector import detect_retest
 from trade_executor import execute_trade
-from chart_drawer import draw_asian_levels
+from chart_drawer import draw_asian_levels, draw_trade_arrow
 
 
 symbol = "EURUSD"
