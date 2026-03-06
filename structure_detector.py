@@ -1,24 +1,36 @@
 import MetaTrader5 as mt5
+from datetime import datetime
 
 
-def detect_structure(symbol):
+def detect_sweep_and_retest(symbol, asian_high, asian_low, bias):
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H1, 0, 3)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 20)
 
-    if rates is None or len(rates) < 3:
+    if rates is None:
         return None
 
-    high1 = rates[0]['high']
-    high2 = rates[1]['high']
+    last_candle = rates[-1]
+    prev_candle = rates[-2]
 
-    low1 = rates[0]['low']
-    low2 = rates[1]['low']
+    last_high = last_candle['high']
+    last_low = last_candle['low']
+    last_close = last_candle['close']
 
-    if high1 > high2 and low1 > low2:
-        return "UP"
+    prev_high = prev_candle['high']
+    prev_low = prev_candle['low']
 
-    elif high1 < high2 and low1 < low2:
-        return "DOWN"
+    # BUY logic (Asian Low sweep)
+    if bias == "UP":
 
-    else:
-        return "NONE"
+        if prev_low < asian_low and last_close > asian_low:
+            print("Sweep and retest of Asian LOW detected")
+            return "BUY"
+
+    # SELL logic (Asian High sweep)
+    if bias == "DOWN":
+
+        if prev_high > asian_high and last_close < asian_high:
+            print("Sweep and retest of Asian HIGH detected")
+            return "SELL"
+
+    return None
