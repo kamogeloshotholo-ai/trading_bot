@@ -42,7 +42,7 @@ def run_bot():
         signal = detect_sweep_and_structure(symbol, asian_high, asian_low)
 
         print("Bias:", bias)
-        print("Structure:", structure)
+        print("Signal:", signal)
 
         # Only one trade per day
         if last_trade_day == today:
@@ -50,7 +50,7 @@ def run_bot():
             time.sleep(60)
             continue
 
-        if bias == "UP" and structure == "BULLISH_BOS":
+        if bias == "UP" and signal == "BULLISH_SWEEP":
 
             print("BUY SIGNAL")
 
@@ -58,7 +58,7 @@ def run_bot():
 
             last_trade_day = today
 
-        elif bias == "DOWN" and structure == "BEARISH_BOS":
+        elif bias == "DOWN" and signal == "BEARISH_SWEEP":
 
             print("SELL SIGNAL")
 
