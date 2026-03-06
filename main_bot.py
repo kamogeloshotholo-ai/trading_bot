@@ -46,7 +46,10 @@ def run_bot():
         signal = detect_retest(symbol, asian_high, asian_low)
 
         print("Bias:", bias)
-        print("Signal:", signal)
+        if signal is None:
+    print("Waiting for sweep + retest...")
+else:
+    print("Trade signal:", signal)
 
         # Only one trade per day
         if last_trade_day == today:
