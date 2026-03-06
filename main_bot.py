@@ -6,7 +6,7 @@ from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
 from structure_detector import detect_retest
 from trade_executor import execute_trade
-from chart_drawer import draw_asian_levels, draw_trade_arrow
+# chart drawing disabled for Python MT5
 
 
 symbol = "EURUSD"
@@ -40,7 +40,7 @@ def run_bot():
             continue
 
         # Draw Asian levels on chart
-        draw_asian_levels(symbol, asian_high, asian_low)
+        
 
         # Detect sweep + retest
         signal = detect_retest(symbol, asian_high, asian_low)
@@ -61,7 +61,7 @@ def run_bot():
 
             execute_trade(symbol, "BUY")
 
-            draw_trade_arrow(symbol, "BUY")
+            
 
             last_trade_day = today
 
