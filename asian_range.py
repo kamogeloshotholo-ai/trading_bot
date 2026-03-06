@@ -1,45 +1,40 @@
 import MetaTrader5 as mt5
 from datetime import datetime
 
-# Asian session hours (broker time)
-ASIAN_START = 0
-ASIAN_END = 6
-
+last_day = None
 asian_high = None
 asian_low = None
-asian_day = None
 
 
 def get_asian_range(symbol):
 
-    global asian_high, asian_low, asian_day
+    global last_day, asian_high, asian_low
 
-    now = datetime.now()
+    today = datetime.now().date()
 
     # Reset every new day
-    if asian_day != now.date():
+    if last_day != today:
         asian_high = None
         asian_low = None
-        asian_day = now.date()
+        last_day = today
+        print("New day detected → resetting Asian range")
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 200)
+    # If already calculated today, return stored values
+    if asian_high is not None and asian_low is not None:
+        return asian_high, asian_low
 
-    if rates is None:
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 96)
+
+    if rates is None or len(rates) == 0:
         return None, None
 
-    for candle in rates:
+    highs = [candle['high'] for candle in rates]
+    lows = [candle['low'] for candle in rates]
 
-        candle_time = datetime.fromtimestamp(candle['time'])
+    asian_high = max(highs)
+    asian_low = min(lows)
 
-        if ASIAN_START <= candle_time.hour < ASIAN_END:
-
-            high = candle['high']
-            low = candle['low']
-
-            if asian_high is None or high > asian_high:
-                asian_high = high
-
-            if asian_low is None or low < asian_low:
-                asian_low = low
+    print("Asian High:", asian_high)
+    print("Asian Low:", asian_low)
 
     return asian_high, asian_low
