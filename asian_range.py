@@ -1,49 +1,45 @@
 import MetaTrader5 as mt5
 from datetime import datetime
 
+# Asian session hours (broker time)
+ASIAN_START = 0
+ASIAN_END = 6
+
 asian_high = None
 asian_low = None
-range_day = None
+asian_day = None
 
 
 def get_asian_range(symbol):
 
-    global asian_high
-    global asian_low
-    global range_day
+    global asian_high, asian_low, asian_day
 
     now = datetime.now()
-    today = now.date()
 
-    # Reset range when a new day starts
-    if range_day != today:
+    # Reset every new day
+    if asian_day != now.date():
         asian_high = None
         asian_low = None
-        range_day = today
-        print("New trading day detected — resetting Asian range")
+        asian_day = now.date()
 
-    # If range already calculated today, return it
-    if asian_high is not None and asian_low is not None:
-        return asian_high, asian_low
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 200)
 
-    # Asian session time
-    asian_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    asian_end = now.replace(hour=6, minute=0, second=0, microsecond=0)
-
-    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M5, asian_start, asian_end)
-
-    if rates is None or len(rates) == 0:
-        print("Asian session not complete yet")
+    if rates is None:
         return None, None
 
-    highs = [candle['high'] for candle in rates]
-    lows = [candle['low'] for candle in rates]
+    for candle in rates:
 
-    asian_high = max(highs)
-    asian_low = min(lows)
+        candle_time = datetime.fromtimestamp(candle['time'])
 
-    print("Asian Range Set")
-    print("Asian High:", asian_high)
-    print("Asian Low:", asian_low)
+        if ASIAN_START <= candle_time.hour < ASIAN_END:
+
+            high = candle['high']
+            low = candle['low']
+
+            if asian_high is None or high > asian_high:
+                asian_high = high
+
+            if asian_low is None or low < asian_low:
+                asian_low = low
 
     return asian_high, asian_low
