@@ -4,7 +4,7 @@ from datetime import datetime
 
 from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
-from structure_detector import get_market_structure
+from structure_detector import detect_sweep_and_structure
 from trade_executor import execute_trade
 from chart_drawer import draw_asian_levels
 
@@ -39,7 +39,7 @@ def run_bot():
 
         draw_asian_levels(symbol, asian_high, asian_low)
 
-        structure = get_market_structure(symbol)
+        signal = detect_sweep_and_structure(symbol, asian_high, asian_low)
 
         print("Bias:", bias)
         print("Structure:", structure)
