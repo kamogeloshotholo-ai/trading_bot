@@ -6,7 +6,6 @@ from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
 from structure_detector import detect_retest
 from trade_executor import execute_trade
-# chart drawing disabled for Python MT5
 
 
 symbol = "EURUSD"
@@ -28,8 +27,10 @@ def run_bot():
 
         today = datetime.now().date()
 
-        # Get higher timeframe bias
-        bias = get_h4_bias(symbol)
+        # Reset every new day
+        if last_trade_day != today:
+            print("New day detected → resetting Asian range")
+            last_trade_day = today
 
         # Get Asian range
         asian_high, asian_low = get_asian_range(symbol)
@@ -39,48 +40,26 @@ def run_bot():
             time.sleep(60)
             continue
 
-        # Draw Asian levels on chart
-        
+        print("Asian High:", asian_high)
+        print("Asian Low:", asian_low)
 
-        # Detect sweep + retest
-        signal = detect_retest(symbol, asian_high, asian_low)
-
+        # Get H4 bias
+        bias = get_h4_bias(symbol)
         print("Bias:", bias)
+
+        # Detect retest after sweep
+        signal = detect_retest(symbol, asian_high, asian_low, bias)
+
         if signal is None:
-    print("Waiting for sweep + retest...")
-else:
-    print("Trade signal:", signal)
+            print("Waiting for sweep + retest...")
+        else:
+            print("Trade signal:", signal)
 
-        # Only one trade per day
-        if last_trade_day == today:
-            print("Trade already taken today")
-            time.sleep(60)
-            continue
+            execute_trade(symbol, signal)
 
-        # BUY condition
-        if bias == "UP" and signal == "BUY":
-
-            print("BUY SIGNAL")
-
-            execute_trade(symbol, "BUY")
-
-            
-
-            last_trade_day = today
-
-        # SELL condition
-        elif bias == "DOWN" and signal == "SELL":
-
-            print("SELL SIGNAL")
-
-            execute_trade(symbol, "SELL")
-
-            draw_trade_arrow(symbol, "SELL")
-
-            last_trade_day = today
+            print("TRADE EXECUTED:", signal)
 
         time.sleep(60)
 
 
-if __name__ == "__main__":
-    run_bot()
+run_bot()
