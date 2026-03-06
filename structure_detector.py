@@ -1,7 +1,7 @@
 import MetaTrader5 as mt5
 
 
-def detect_retest(symbol, asian_high, asian_low):
+def detect_retest(symbol, asian_high, asian_low, bias):
 
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 10)
 
