@@ -1,5 +1,6 @@
 import time
 import MetaTrader5 as mt5
+from datetime import datetime
 
 from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
@@ -10,8 +11,12 @@ from chart_drawer import draw_asian_levels
 
 symbol = "EURUSD"
 
+last_trade_day = None
+
 
 def run_bot():
+
+    global last_trade_day
 
     if not mt5.initialize():
         print("MT5 initialization failed")
@@ -20,6 +25,8 @@ def run_bot():
     print("BOT STARTED")
 
     while True:
+
+        today = datetime.now().date()
 
         bias = get_h4_bias(symbol)
 
@@ -37,13 +44,27 @@ def run_bot():
         print("Bias:", bias)
         print("Structure:", structure)
 
+        # Only one trade per day
+        if last_trade_day == today:
+            print("Trade already taken today")
+            time.sleep(60)
+            continue
+
         if bias == "UP" and structure == "BULLISH_BOS":
+
             print("BUY SIGNAL")
+
             execute_trade(symbol, "BUY")
 
+            last_trade_day = today
+
         elif bias == "DOWN" and structure == "BEARISH_BOS":
+
             print("SELL SIGNAL")
+
             execute_trade(symbol, "SELL")
+
+            last_trade_day = today
 
         time.sleep(60)
 
