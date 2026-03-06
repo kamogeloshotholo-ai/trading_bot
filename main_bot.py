@@ -28,8 +28,10 @@ def run_bot():
 
         today = datetime.now().date()
 
+        # Get higher timeframe bias
         bias = get_h4_bias(symbol)
 
+        # Get Asian range
         asian_high, asian_low = get_asian_range(symbol)
 
         if asian_high is None:
@@ -37,8 +39,10 @@ def run_bot():
             time.sleep(60)
             continue
 
+        # Draw Asian levels on chart
         draw_asian_levels(symbol, asian_high, asian_low)
 
+        # Detect sweep + retest
         signal = detect_retest(symbol, asian_high, asian_low)
 
         print("Bias:", bias)
@@ -50,19 +54,25 @@ def run_bot():
             time.sleep(60)
             continue
 
+        # BUY condition
         if bias == "UP" and signal == "BUY":
 
             print("BUY SIGNAL")
 
             execute_trade(symbol, "BUY")
 
+            draw_trade_arrow(symbol, "BUY")
+
             last_trade_day = today
 
+        # SELL condition
         elif bias == "DOWN" and signal == "SELL":
 
             print("SELL SIGNAL")
 
             execute_trade(symbol, "SELL")
+
+            draw_trade_arrow(symbol, "SELL")
 
             last_trade_day = today
 
