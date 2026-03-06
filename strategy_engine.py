@@ -1,50 +1,26 @@
 import MetaTrader5 as mt5
-from asian_range import get_asian_range
-from datetime import datetime
 
 
-LONDON_START = 7
-LONDON_END = 16
+def get_h4_bias(symbol):
 
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 3)
 
-def check_london_session():
-
-    now = datetime.now()
-
-    if LONDON_START <= now.hour <= LONDON_END:
-        return True
-
-    return False
-
-
-def get_trade_signal(symbol, bias):
-
-    asian_high, asian_low = get_asian_range(symbol)
-
-    if asian_high is None:
+    if rates is None or len(rates) < 3:
         return None
 
-    tick = mt5.symbol_info_tick(symbol)
-    price = tick.bid
+    high1 = rates[0]['high']
+    high2 = rates[1]['high']
 
-    if not check_london_session():
-        print("Outside London session")
-        return None
+    low1 = rates[0]['low']
+    low2 = rates[1]['low']
 
-    print("Asian High:", asian_high)
-    print("Asian Low:", asian_low)
-    print("Current Price:", price)
+    # Uptrend
+    if high1 > high2 and low1 > low2:
+        return "UP"
 
-    if bias == "UP":
+    # Downtrend
+    elif high1 < high2 and low1 < low2:
+        return "DOWN"
 
-        if price < asian_low:
-            print("Asian low sweep detected -> BUY setup")
-            return "BUY"
-
-    if bias == "DOWN":
-
-        if price > asian_high:
-            print("Asian high sweep detected -> SELL setup")
-            return "SELL"
-
-    return None
+    else:
+        return "NONE"
