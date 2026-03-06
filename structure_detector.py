@@ -1,28 +1,31 @@
 import MetaTrader5 as mt5
 
 
-def get_market_structure(symbol):
+def detect_sweep_and_structure(symbol, asian_high, asian_low):
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 20)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 30)
 
-    if rates is None or len(rates) < 10:
+    if rates is None or len(rates) < 5:
         return None
 
-    highs = [candle['high'] for candle in rates]
-    lows = [candle['low'] for candle in rates]
+    last = rates[-1]
+    prev = rates[-2]
 
-    last_high = highs[-1]
-    prev_high = highs[-2]
+    last_high = last['high']
+    last_low = last['low']
+    last_close = last['close']
 
-    last_low = lows[-1]
-    prev_low = lows[-2]
+    prev_high = prev['high']
+    prev_low = prev['low']
 
-    # Bullish Break Of Structure
-    if last_high > prev_high:
-        return "BULLISH_BOS"
+    # Sweep Asian LOW
+    if prev_low < asian_low and last_close > asian_low:
+        print("Asian LOW sweep detected")
+        return "BULLISH_SWEEP"
 
-    # Bearish Break Of Structure
-    if last_low < prev_low:
-        return "BEARISH_BOS"
+    # Sweep Asian HIGH
+    if prev_high > asian_high and last_close < asian_high:
+        print("Asian HIGH sweep detected")
+        return "BEARISH_SWEEP"
 
-    return "NO_STRUCTURE"
+    return None
