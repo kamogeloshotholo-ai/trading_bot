@@ -4,7 +4,25 @@ from datetime import datetime
 
 from strategy_engine import get_h4_bias
 from asian_range import get_asian_range
-from structure_detector import detect_sweep_and_structure
+signal = detect_retest(symbol, asian_high, asian_low)
+
+print("Bias:", bias)
+print("Signal:", signal)
+
+if last_trade_day == today:
+    print("Trade already taken today")
+    time.sleep(60)
+    continue
+
+if bias == "UP" and signal == "BUY":
+
+    execute_trade(symbol, "BUY")
+    last_trade_day = today
+
+elif bias == "DOWN" and signal == "SELL":
+
+    execute_trade(symbol, "SELL")
+    last_trade_day = today
 from trade_executor import execute_trade
 from chart_drawer import draw_asian_levels
 
