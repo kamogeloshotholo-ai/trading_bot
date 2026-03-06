@@ -1,3 +1,2 @@
 streamlit
-metaTrader5
 pandas
