@@ -1,120 +1,52 @@
-import customtkinter as ctk
+import streamlit as st
 import subprocess
-import MetaTrader5 as mt5
 
-# ---------------- SETTINGS ----------------
+st.set_page_config(page_title="AI Trading Bot", layout="wide")
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+st.title("AI Trading Bot Dashboard")
 
-# ---------------- MT5 CONNECTION ----------------
+st.sidebar.title("Navigation")
 
-mt5.initialize()
+page = st.sidebar.radio(
+    "Go to",
+    ["Dashboard", "Run Bot", "Backtest", "Optimizer"]
+)
 
-bot_process = None
+if page == "Dashboard":
 
-# ---------------- APP WINDOW ----------------
+    st.header("Bot Status")
 
-app = ctk.CTk()
-app.geometry("900x600")
-app.title("AI Trading Bot Platform")
+    st.write("Strategy:")
+    st.write("- Asian Range")
+    st.write("- Liquidity Sweep")
+    st.write("- Retest Entry")
+    st.write("- H4 Bias Filter")
 
-# ---------------- LOGIN SCREEN ----------------
+    st.write("Pairs:")
+    st.write("EURUSD")
+    st.write("XAUUSD")
+    st.write("NAS100")
 
-login_frame = ctk.CTkFrame(app)
-login_frame.pack(fill="both", expand=True)
+if page == "Run Bot":
 
-title = ctk.CTkLabel(login_frame, text="AI Trading Bot Platform", font=("Arial", 30))
-title.pack(pady=40)
+    st.header("Trading Bot Control")
 
-username_entry = ctk.CTkEntry(login_frame, placeholder_text="Username")
-username_entry.pack(pady=10)
+    if st.button("Start Trading Bot"):
+        subprocess.Popen(["python", "main_bot.py"])
+        st.success("Bot started")
 
-password_entry = ctk.CTkEntry(login_frame, placeholder_text="Password", show="*")
-password_entry.pack(pady=10)
+if page == "Backtest":
 
-# ---------------- DASHBOARD ----------------
+    st.header("Run Strategy Backtest")
 
-dashboard_frame = ctk.CTkFrame(app)
+    if st.button("Run Backtest"):
+        subprocess.run(["python", "backtester.py"])
+        st.success("Backtest finished")
 
-header = ctk.CTkLabel(dashboard_frame, text="Trading Dashboard", font=("Arial", 28))
-header.pack(pady=20)
+if page == "Optimizer":
 
-# -------- ACCOUNT INFO --------
+    st.header("Run AI Optimizer")
 
-account = mt5.account_info()
-
-balance_label = ctk.CTkLabel(dashboard_frame, text=f"Balance: ${account.balance}")
-balance_label.pack()
-
-equity_label = ctk.CTkLabel(dashboard_frame, text=f"Equity: ${account.equity}")
-equity_label.pack()
-
-profit_label = ctk.CTkLabel(dashboard_frame, text=f"Floating Profit: ${account.profit}")
-profit_label.pack(pady=10)
-
-# -------- BOT STATUS --------
-
-status_label = ctk.CTkLabel(dashboard_frame, text="Bot Status: STOPPED")
-status_label.pack(pady=10)
-
-# -------- START BOT --------
-
-def start_bot():
-    global bot_process
-
-    if bot_process is None:
-        bot_process = subprocess.Popen(["python", "main_bot.py"])
-        status_label.configure(text="Bot Status: RUNNING")
-
-# -------- STOP BOT --------
-
-def stop_bot():
-    global bot_process
-
-    if bot_process:
-        bot_process.terminate()
-        bot_process = None
-        status_label.configure(text="Bot Status: STOPPED")
-
-# -------- BOT BUTTONS --------
-
-start_button = ctk.CTkButton(dashboard_frame, text="Start Bot", command=start_bot)
-start_button.pack(pady=10)
-
-stop_button = ctk.CTkButton(dashboard_frame, text="Stop Bot", command=stop_bot)
-stop_button.pack(pady=10)
-
-# -------- TRADE LOG --------
-
-trade_title = ctk.CTkLabel(dashboard_frame, text="Recent Trades", font=("Arial", 20))
-trade_title.pack(pady=20)
-
-trade_log = ctk.CTkTextbox(dashboard_frame, height=200, width=600)
-trade_log.pack()
-
-trade_log.insert("end", "No trades yet...\n")
-
-# ---------------- LOGIN FUNCTION ----------------
-
-def login():
-
-    username = username_entry.get()
-    password = password_entry.get()
-
-    if username == "admin" and password == "1234":
-
-        login_frame.pack_forget()
-        dashboard_frame.pack(fill="both", expand=True)
-
-    else:
-        print("Invalid Login")
-
-# -------- LOGIN BUTTON --------
-
-login_button = ctk.CTkButton(login_frame, text="Login", command=login)
-login_button.pack(pady=20)
-
-# ---------------- RUN APP ----------------
-
-app.mainloop()
+    if st.button("Run Optimization"):
+        subprocess.run(["python", "optimizer.py"])
+        st.success("Optimization complete")
