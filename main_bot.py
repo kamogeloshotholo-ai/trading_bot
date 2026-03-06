@@ -25,14 +25,21 @@ def run_bot():
 
     while True:
 
-        today = datetime.now().date()
+        now = datetime.now()
+        today = now.date()
 
-        # Reset every new day
+        # Wait for Asian session to finish (before 06:00)
+        if now.hour < 6:
+            print("Asian session still running... waiting")
+            time.sleep(60)
+            continue
+
+        # Reset once per day
         if last_trade_day != today:
             print("New day detected → resetting Asian range")
             last_trade_day = today
 
-        # Get Asian range
+        # Get Asian session range
         asian_high, asian_low = get_asian_range(symbol)
 
         if asian_high is None:
@@ -47,7 +54,7 @@ def run_bot():
         bias = get_h4_bias(symbol)
         print("Bias:", bias)
 
-        # Detect retest after sweep
+        # Detect sweep + retest
         signal = detect_retest(symbol, asian_high, asian_low, bias)
 
         if signal is None:
