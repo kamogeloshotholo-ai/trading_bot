@@ -2,83 +2,108 @@ import MetaTrader5 as mt5
 import pandas as pd
 from datetime import datetime
 
+# starting balance for tests
+START_BALANCE = 1000
 
-symbol = "EURUSD"
-lot = 0.01
-stop_loss_pips = 20
-take_profit_pips = 40
+# timeframe used for testing
+TIMEFRAME = mt5.TIMEFRAME_M5
+
+# number of candles to load
+CANDLES = 5000
 
 
 def connect():
     if not mt5.initialize():
-        print("MT5 failed")
+        print("MT5 initialization failed")
         quit()
 
 
-def get_data():
+def get_data(symbol):
 
     rates = mt5.copy_rates_from_pos(
         symbol,
-        mt5.TIMEFRAME_M5,
+        TIMEFRAME,
         0,
-        5000
+        CANDLES
     )
+
+    if rates is None:
+        print("No data for", symbol)
+        return None
 
     df = pd.DataFrame(rates)
 
-    df['time'] = pd.to_datetime(df['time'], unit='s')
+    df["time"] = pd.to_datetime(df["time"], unit="s")
 
     return df
 
 
-def backtest():
+def run_backtest(symbol, stop_loss_pips, take_profit_pips):
 
     connect()
 
-    data = get_data()
+    data = get_data(symbol)
 
-    balance = 1000
+    if data is None:
+        return {"balance": START_BALANCE, "wins": 0, "losses": 0}
+
+    balance = START_BALANCE
     wins = 0
     losses = 0
 
-    for i in range(50, len(data)):
+    print(f"\nRunning backtest for {symbol}")
+    print(f"SL={stop_loss_pips} TP={take_profit_pips}")
+
+    for i in range(50, len(data) - 20):
 
         candle = data.iloc[i]
 
-        price = candle['close']
+        price = candle["close"]
 
-        # Fake signal example
-        if price > data['high'].iloc[i-10:i].max():
+        # simple breakout logic placeholder
+        if price > data["high"].iloc[i - 10:i].max():
 
             entry = price
-            sl = entry + 0.0020
-            tp = entry - 0.0040
+            sl = entry + (stop_loss_pips * 0.0001)
+            tp = entry - (take_profit_pips * 0.0001)
 
-            future = data.iloc[i:i+20]
+            future = data.iloc[i:i + 20]
 
             for _, f in future.iterrows():
 
-                if f['high'] >= sl:
+                if f["high"] >= sl:
                     balance -= 10
                     losses += 1
                     break
 
-                if f['low'] <= tp:
+                if f["low"] <= tp:
                     balance += 20
                     wins += 1
                     break
 
-    print("Backtest Results")
-    print("----------------")
+    total = wins + losses
+
+    winrate = 0
+    if total > 0:
+        winrate = (wins / total) * 100
+
+    print("Results:")
     print("Balance:", balance)
     print("Wins:", wins)
     print("Losses:", losses)
+    print("Winrate:", round(winrate, 2), "%")
 
-    total = wins + losses
+    return {
+        "balance": balance,
+        "wins": wins,
+        "losses": losses
+    }
 
-    if total > 0:
-        winrate = (wins / total) * 100
-        print("Winrate:", round(winrate,2), "%")
 
+if __name__ == "__main__":
 
-backtest()
+    # quick test run
+    result = run_backtest("EURUSD", 20, 40)
+
+    print("\nTest run finished")
+    print(result)
