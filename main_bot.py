@@ -17,7 +17,7 @@ max_trades_per_day = 2
 trades_today = 0
 
 
-# Track last candle
+# Track last candle time
 last_candle_time = {}
 
 
@@ -43,19 +43,13 @@ def connect():
 
     print("MT5 connected")
 
-    # Wait until MT5 provides account info
-    for i in range(10):
+    account = mt5.account_info()
 
-        account = mt5.account_info()
-
-        if account is not None:
-            print("Account balance:", account.balance)
-            return
-
-        print("Waiting for MT5 account info...")
-        time.sleep(1)
-
-    print("Could not read account info, but continuing...")
+    if account is None:
+        print("WARNING: Could not read account info")
+    else:
+        balance = account.balance
+        print("Account balance =", balance)
 
 
 # -----------------------------
