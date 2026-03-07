@@ -18,8 +18,8 @@ max_trades_per_day = 2
 trades_today = 0
 
 
-# Track last candle
-last_candle_time = None
+# Track candles per symbol
+last_candle_time = {}
 
 
 def connect():
@@ -31,25 +31,35 @@ def connect():
     print("MT5 connected")
 
 
+def asian_session_over():
+
+    now = datetime.now()
+
+    # Asian session until 07:00
+    if now.hour < 7:
+        return False
+
+    return True
+
+
 def new_candle(symbol):
 
     global last_candle_time
 
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 1)
 
-    # Prevent crash if market closed
     if rates is None or len(rates) == 0:
         print("Waiting for market data...")
         return False
 
     candle_time = rates[0]["time"]
 
-    if last_candle_time is None:
-        last_candle_time = candle_time
+    if symbol not in last_candle_time:
+        last_candle_time[symbol] = candle_time
         return False
 
-    if candle_time != last_candle_time:
-        last_candle_time = candle_time
+    if candle_time != last_candle_time[symbol]:
+        last_candle_time[symbol] = candle_time
         return True
 
     return False
@@ -84,6 +94,11 @@ def run_bot():
 
         manage_open_trades()
 
+        if not asian_session_over():
+            print("Asian session running... waiting for London setup")
+            time.sleep(300)
+            continue
+
         if trades_today >= max_trades_per_day:
             print("Daily trade limit reached")
             time.sleep(60)
@@ -112,7 +127,7 @@ def run_bot():
 
                 print(symbol, "No trade setup")
 
-        time.sleep(5)
+        time.sleep(300)
 
 
 run_bot()
