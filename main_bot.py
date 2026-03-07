@@ -9,24 +9,24 @@ from trade_manager import manage_open_trades
 from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 
 
-# --------------------------------
+# -----------------------------
 # SYMBOLS
-# --------------------------------
+# -----------------------------
 
 symbols = ["EURUSD", "XAUUSD", "NAS100", "BTCUSD"]
 
 
-# --------------------------------
+# -----------------------------
 # RISK SETTINGS
-# --------------------------------
+# -----------------------------
 
 max_trades_per_day = 2
 trades_today = 0
 
 
-# --------------------------------
-# MEMORY VARIABLES
-# --------------------------------
+# -----------------------------
+# MEMORY
+# -----------------------------
 
 last_candle_time = {}
 sweep_setups = {}
@@ -34,9 +34,9 @@ sweep_setups = {}
 current_day = datetime.now().day
 
 
-# --------------------------------
+# -----------------------------
 # CONNECT MT5
-# --------------------------------
+# -----------------------------
 
 def connect():
 
@@ -50,18 +50,15 @@ def connect():
 
     account = mt5.account_info()
 
-    if account:
-
+    if account is not None:
         print("Account balance:", account.balance)
-
     else:
-
         print("Account info not available")
 
 
-# --------------------------------
+# -----------------------------
 # NEW CANDLE DETECTION
-# --------------------------------
+# -----------------------------
 
 def new_candle(symbol):
 
@@ -73,21 +70,19 @@ def new_candle(symbol):
     candle_time = rates[0]["time"]
 
     if symbol not in last_candle_time:
-
         last_candle_time[symbol] = candle_time
         return False
 
     if candle_time != last_candle_time[symbol]:
-
         last_candle_time[symbol] = candle_time
         return True
 
     return False
 
 
-# --------------------------------
+# -----------------------------
 # RESET DAILY TRADES
-# --------------------------------
+# -----------------------------
 
 def reset_daily_trades():
 
@@ -101,12 +96,12 @@ def reset_daily_trades():
         trades_today = 0
         current_day = now.day
 
-        print("Daily trade counter reset")
+        print("Daily trades reset")
 
 
-# --------------------------------
+# -----------------------------
 # MAIN BOT
-# --------------------------------
+# -----------------------------
 
 def run_bot():
 
@@ -127,7 +122,6 @@ def run_bot():
         if trades_today >= max_trades_per_day:
 
             print("Daily trade limit reached")
-
             time.sleep(60)
             continue
 
@@ -137,9 +131,7 @@ def run_bot():
             if not new_candle(symbol):
                 continue
 
-
             print("New M5 candle detected on", symbol)
-
 
             sweep = detect_liquidity_sweep(symbol)
 
@@ -149,7 +141,6 @@ def run_bot():
 
                     print(symbol, "Sweep already detected")
                     continue
-
 
                 print(symbol, "Liquidity sweep detected")
 
