@@ -10,14 +10,14 @@ from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 
 
 # --------------------------------
-# PAIRS THE BOT WILL TRADE
+# SYMBOLS
 # --------------------------------
 
 symbols = ["EURUSD", "XAUUSD", "NAS100", "BTCUSD"]
 
 
 # --------------------------------
-# RISK CONTROL
+# RISK SETTINGS
 # --------------------------------
 
 max_trades_per_day = 2
@@ -35,7 +35,7 @@ current_day = datetime.now().day
 
 
 # --------------------------------
-# CONNECT TO MT5
+# CONNECT MT5
 # --------------------------------
 
 def connect():
@@ -50,22 +50,17 @@ def connect():
 
     account = mt5.account_info()
 
-    if account is None:
+    if account:
 
-        print("Account info not available")
-        print("Make sure MT5 is logged in")
+        print("Account balance:", account.balance)
 
     else:
 
-        balance = account.balance
-
-        print(f"Account balance = {balance}")
-
-    print("Connection complete")
+        print("Account info not available")
 
 
 # --------------------------------
-# DETECT NEW M5 CANDLE
+# NEW CANDLE DETECTION
 # --------------------------------
 
 def new_candle(symbol):
@@ -91,21 +86,7 @@ def new_candle(symbol):
 
 
 # --------------------------------
-# ASIAN SESSION CHECK
-# --------------------------------
-
-def asian_session_running():
-
-    now = datetime.now()
-
-    if now.hour < 7:
-        return True
-
-    return False
-
-
-# --------------------------------
-# RESET DAILY TRADE LIMIT
+# RESET DAILY TRADES
 # --------------------------------
 
 def reset_daily_trades():
@@ -124,7 +105,7 @@ def reset_daily_trades():
 
 
 # --------------------------------
-# MAIN BOT LOOP
+# MAIN BOT
 # --------------------------------
 
 def run_bot():
@@ -141,7 +122,6 @@ def run_bot():
         reset_daily_trades()
         reset_sweep_memory()
 
-        # Manage open trades
         manage_open_trades()
 
         if trades_today >= max_trades_per_day:
@@ -167,7 +147,7 @@ def run_bot():
 
                 if sweep_already_detected(symbol):
 
-                    print(symbol, "Sweep already detected today — skipping")
+                    print(symbol, "Sweep already detected")
                     continue
 
 
@@ -197,7 +177,7 @@ def run_bot():
 
         print("Waiting for next candle...")
 
-        time.sleep(60)
+        time.sleep(30)
 
 
 run_bot()
