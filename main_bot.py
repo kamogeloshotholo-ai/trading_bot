@@ -8,7 +8,7 @@ from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 
 
-# Pairs the bot trades
+# Symbols the bot trades
 symbols = ["EURUSD", "XAUUSD", "NAS100"]
 
 
@@ -17,15 +17,15 @@ max_trades_per_day = 2
 trades_today = 0
 
 
-# Candle tracking
+# Track last candle
 last_candle_time = {}
 
 
-# Day tracking
+# Track day reset
 current_day = datetime.now().day
 
 
-# Sweep memory
+# Store sweeps waiting for retest
 sweep_setups = {}
 
 
@@ -35,18 +35,27 @@ sweep_setups = {}
 
 def connect():
 
+    print("Connecting to MT5...")
+
     if not mt5.initialize():
         print("MT5 initialization failed")
         quit()
 
     print("MT5 connected")
 
-    account = mt5.account_info()
+    # Wait until MT5 provides account info
+    for i in range(10):
 
-    if account is None:
-        print("Failed to get account info")
-    else:
-        print("Account balance:", account.balance)
+        account = mt5.account_info()
+
+        if account is not None:
+            print("Account balance:", account.balance)
+            return
+
+        print("Waiting for MT5 account info...")
+        time.sleep(1)
+
+    print("Could not read account info, but continuing...")
 
 
 # -----------------------------
@@ -90,7 +99,7 @@ def asian_session_running():
 
 
 # -----------------------------
-# DAILY TRADE RESET
+# RESET DAILY TRADES
 # -----------------------------
 
 def reset_daily_trades():
@@ -109,7 +118,7 @@ def reset_daily_trades():
 
 
 # -----------------------------
-# MAIN BOT
+# MAIN BOT LOOP
 # -----------------------------
 
 def run_bot():
