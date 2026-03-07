@@ -1,52 +1,66 @@
 import MetaTrader5 as mt5
-from trade_logger import log_trade
+from structure_detector import get_recent_swing, get_liquidity_target
 
 
-def execute_trade(symbol, signal):
+RISK_PERCENT = 0.01
+
+
+def calculate_lot(symbol, stop_distance):
 
     account = mt5.account_info()
 
     balance = account.balance
 
-    # RISK SETTINGS
-    risk_percent = 0.01   # 1% risk per trade
+    risk_amount = balance * RISK_PERCENT
 
-    risk_amount = balance * risk_percent
+    pip_value = 10
 
+    lot = risk_amount / (stop_distance * pip_value)
+
+    lot = max(0.01, round(lot, 2))
+
+    return lot
+
+
+def execute_trade(symbol, signal):
 
     tick = mt5.symbol_info_tick(symbol)
 
-    pip = 0.0001
-    stop_loss_pips = 20
-    take_profit_pips = 40
+    if signal == "BUY":
+        entry = tick.ask
+    else:
+        entry = tick.bid
 
-
-    pip_value_per_lot = 10
-
-    lot = risk_amount / (stop_loss_pips * pip_value_per_lot)
-
-    lot = round(lot, 2)
-
-
-    deviation = 20
-    magic = 123456
-
+    swing_high, swing_low = get_recent_swing(symbol, mt5.TIMEFRAME_M5)
 
     if signal == "BUY":
+        stop_loss = swing_low
+    else:
+        stop_loss = swing_high
 
-        price = tick.ask
-        sl = price - (stop_loss_pips * pip)
-        tp = price + (take_profit_pips * pip)
+    stop_distance = abs(entry - stop_loss) * 10000
+
+    lot = calculate_lot(symbol, stop_distance)
+
+    tp = get_liquidity_target(symbol, mt5.TIMEFRAME_M5, signal)
+
+    if tp is None:
+        print(symbol, "No liquidity target found — skipping trade")
+        return
+
+    risk = abs(entry - stop_loss)
+    reward = abs(tp - entry)
+
+    if reward / risk < 1.5:
+        print(symbol, "Risk reward too small — skipping trade")
+        return
+
+    if signal == "BUY":
         order_type = mt5.ORDER_TYPE_BUY
-
-
-    elif signal == "SELL":
-
-        price = tick.bid
-        sl = price + (stop_loss_pips * pip)
-        tp = price - (take_profit_pips * pip)
+        price = entry
+    else:
         order_type = mt5.ORDER_TYPE_SELL
-
+        price = entry
 
     request = {
         "action": mt5.TRADE_ACTION_DEAL,
@@ -54,20 +68,15 @@ def execute_trade(symbol, signal):
         "volume": lot,
         "type": order_type,
         "price": price,
-        "sl": sl,
+        "sl": stop_loss,
         "tp": tp,
-        "deviation": deviation,
-        "magic": magic,
-        "comment": "Python Algo Trade",
+        "deviation": 20,
+        "magic": 1001,
+        "comment": "AI_BOT",
         "type_time": mt5.ORDER_TIME_GTC,
         "type_filling": mt5.ORDER_FILLING_FOK,
     }
 
     result = mt5.order_send(request)
 
-    print("Trade result:", result)
-
-    if result.retcode == mt5.TRADE_RETCODE_DONE:
-        log_trade(symbol, signal, price, sl, tp, lot)
-
-    mt5.shutdown()
+    print(symbol, "Trade result:", result)
