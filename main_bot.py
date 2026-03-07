@@ -12,15 +12,14 @@ from trade_manager import manage_open_trades
 # Pairs the bot will trade
 symbols = ["EURUSD", "XAUUSD", "NAS100"]
 
+
 # Risk control
 max_trades_per_day = 2
 trades_today = 0
 
-# Track candle time for each symbol
-last_candle_time = {}
 
-# Track trading day
-last_trade_day = datetime.now().date()
+# Track last candle
+last_candle_time = None
 
 
 def connect():
@@ -38,14 +37,19 @@ def new_candle(symbol):
 
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 1)
 
-    candle_time = rates[0]["time"]
-
-    if symbol not in last_candle_time:
-        last_candle_time[symbol] = candle_time
+    # Prevent crash if market closed
+    if rates is None or len(rates) == 0:
+        print("Waiting for market data...")
         return False
 
-    if candle_time != last_candle_time[symbol]:
-        last_candle_time[symbol] = candle_time
+    candle_time = rates[0]["time"]
+
+    if last_candle_time is None:
+        last_candle_time = candle_time
+        return False
+
+    if candle_time != last_candle_time:
+        last_candle_time = candle_time
         return True
 
     return False
@@ -71,21 +75,12 @@ def check_trade_signal(symbol):
 def run_bot():
 
     global trades_today
-    global last_trade_day
 
     connect()
 
     print("BOT STARTED")
 
     while True:
-
-        today = datetime.now().date()
-
-        # Reset trade counter each new day
-        if today != last_trade_day:
-            print("New trading day detected — resetting trade counter")
-            trades_today = 0
-            last_trade_day = today
 
         manage_open_trades()
 
