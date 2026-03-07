@@ -2,11 +2,10 @@ import time
 import MetaTrader5 as mt5
 from datetime import datetime
 
-from candle_logic import get_candle_type
-from structure_detector import detect_structure
-from strategy_engine import get_h4_bias
 from trade_executor import execute_trade
 from trade_manager import manage_open_trades
+from liquidity_sweep import detect_liquidity_sweep
+from retest_detector import detect_retest
 
 
 # Trading pairs
@@ -21,14 +20,18 @@ trades_today = 0
 # Track last candle per symbol
 last_candle_time = {}
 
+
 # Track day for reset
 current_day = datetime.now().day
+
+
+# Store sweep setups
+sweep_setups = {}
 
 
 # -----------------------------
 # CONNECT TO MT5
 # -----------------------------
-
 def connect():
 
     if not mt5.initialize():
@@ -41,7 +44,6 @@ def connect():
 # -----------------------------
 # NEW CANDLE DETECTION
 # -----------------------------
-
 def new_candle(symbol):
 
     global last_candle_time
@@ -67,35 +69,12 @@ def new_candle(symbol):
 
 
 # -----------------------------
-# STRATEGY CHECK
+# ASIAN SESSION FILTER
 # -----------------------------
-
-def check_trade_signal(symbol):
-
-    bias = get_h4_bias(symbol)
-    structure = detect_structure(symbol)
-    candle = get_candle_type(symbol)
-
-    print(symbol, "| Bias:", bias, "| Structure:", structure, "| Candle:", candle)
-
-    if bias == "UP" and structure == "UP" and candle == "Bullish":
-        return "BUY"
-
-    if bias == "DOWN" and structure == "DOWN" and candle == "Bearish":
-        return "SELL"
-
-    return None
-
-
-# -----------------------------
-# ASIAN SESSION CHECK
-# -----------------------------
-
 def asian_session_running():
 
     now = datetime.now()
 
-    # Asian session assumed 00:00 → 07:00
     if now.hour < 7:
         return True
 
@@ -105,7 +84,6 @@ def asian_session_running():
 # -----------------------------
 # DAILY RESET
 # -----------------------------
-
 def reset_daily_trades():
 
     global trades_today
@@ -124,10 +102,10 @@ def reset_daily_trades():
 # -----------------------------
 # MAIN BOT
 # -----------------------------
-
 def run_bot():
 
     global trades_today
+    global sweep_setups
 
     connect()
 
@@ -135,10 +113,8 @@ def run_bot():
 
     while True:
 
-        # Reset trades each new day
         reset_daily_trades()
 
-        # Wait for Asian session to finish
         if asian_session_running():
 
             print("Asian session running... waiting for London")
@@ -147,11 +123,9 @@ def run_bot():
             continue
 
 
-        # Manage open trades
         manage_open_trades()
 
 
-        # Check trade limit
         if trades_today >= max_trades_per_day:
 
             print("Daily trade limit reached")
@@ -160,29 +134,38 @@ def run_bot():
             continue
 
 
-        # Scan symbols
         for symbol in symbols:
 
             if not new_candle(symbol):
                 continue
 
+
             print("New M5 candle detected on", symbol)
 
-            signal = check_trade_signal(symbol)
 
-            if signal:
+            # STEP 1 — Detect Liquidity Sweep
+            sweep = detect_liquidity_sweep(symbol)
 
-                print(symbol, "Trade signal:", signal)
+            if sweep:
+                sweep_setups[symbol] = sweep
 
-                execute_trade(symbol, signal)
 
-                trades_today += 1
+            # STEP 2 — Detect Retest
+            if symbol in sweep_setups:
 
-                print("Trades today:", trades_today)
+                signal = detect_retest(symbol, sweep_setups[symbol])
 
-            else:
+                if signal:
 
-                print(symbol, "No trade setup")
+                    print(symbol, "Trade signal:", signal)
+
+                    execute_trade(symbol, signal)
+
+                    trades_today += 1
+
+                    print("Trades today:", trades_today)
+
+                    del sweep_setups[symbol]
 
 
         print("Waiting for next candle...")
@@ -192,5 +175,4 @@ def run_bot():
 # -----------------------------
 # START BOT
 # -----------------------------
-
 run_bot()
