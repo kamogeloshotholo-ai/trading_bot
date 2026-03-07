@@ -12,6 +12,32 @@ def manage_open_trades():
 
         symbol = position.symbol
         ticket = position.ticket
-        price_open = position.price_open
+        sl = position.sl
+        tp = position.tp
 
-        print("Managing trade:", ticket, symbol)
+        if sl == 0 or tp == 0:
+
+            print(symbol, "Trade missing SL or TP — fixing")
+
+            tick = mt5.symbol_info_tick(symbol)
+
+            if position.type == mt5.POSITION_TYPE_BUY:
+                price = tick.ask
+                sl = price - 0.0020
+                tp = price + 0.0040
+
+            else:
+                price = tick.bid
+                sl = price + 0.0020
+                tp = price - 0.0040
+
+            request = {
+                "action": mt5.TRADE_ACTION_SLTP,
+                "position": ticket,
+                "sl": sl,
+                "tp": tp,
+            }
+
+            mt5.order_send(request)
+
+        print(symbol, "Trade monitored | SL:", sl, "| TP:", tp)
