@@ -31,17 +31,6 @@ def connect():
     print("MT5 connected")
 
 
-def asian_session_over():
-
-    now = datetime.now()
-
-    # Asian session until 07:00
-    if now.hour < 7:
-        return False
-
-    return True
-
-
 def new_candle(symbol):
 
     global last_candle_time
@@ -82,6 +71,17 @@ def check_trade_signal(symbol):
     return None
 
 
+def asian_session_running():
+
+    now = datetime.now()
+
+    # Asian session assumed 00:00 → 07:00 server time
+    if now.hour < 7:
+        return True
+
+    return False
+
+
 def run_bot():
 
     global trades_today
@@ -92,16 +92,16 @@ def run_bot():
 
     while True:
 
-        manage_open_trades()
-
-        if not asian_session_over():
+        if asian_session_running():
             print("Asian session running... waiting for London setup")
             time.sleep(300)
             continue
 
+        manage_open_trades()
+
         if trades_today >= max_trades_per_day:
             print("Daily trade limit reached")
-            time.sleep(60)
+            time.sleep(300)
             continue
 
         for symbol in symbols:
