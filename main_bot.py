@@ -112,7 +112,7 @@ def run_bot():
 
                 print(symbol, "No trade setup")
 
-        time.sleep(5)
+        time.sleep(300)
 
 
 run_bot()
