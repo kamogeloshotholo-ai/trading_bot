@@ -3,6 +3,7 @@ from structure_detector import get_recent_swing, get_liquidity_target
 
 
 RISK_PERCENT = 0.01
+MAX_SPREAD = 30  # points
 
 
 def calculate_lot(symbol, stop_distance):
@@ -22,9 +23,29 @@ def calculate_lot(symbol, stop_distance):
     return lot
 
 
+def trade_exists(symbol):
+
+    positions = mt5.positions_get(symbol=symbol)
+
+    if positions:
+        return True
+
+    return False
+
+
 def execute_trade(symbol, signal):
 
+    if trade_exists(symbol):
+        print(symbol, "Trade already open — skipping")
+        return
+
     tick = mt5.symbol_info_tick(symbol)
+
+    spread = abs(tick.ask - tick.bid)
+
+    if spread > MAX_SPREAD * 0.00001:
+        print(symbol, "Spread too large — skipping trade")
+        return
 
     if signal == "BUY":
         entry = tick.ask
@@ -45,14 +66,14 @@ def execute_trade(symbol, signal):
     tp = get_liquidity_target(symbol, mt5.TIMEFRAME_M5, signal)
 
     if tp is None:
-        print(symbol, "No liquidity target found — skipping trade")
+        print(symbol, "No liquidity target — skipping trade")
         return
 
     risk = abs(entry - stop_loss)
     reward = abs(tp - entry)
 
     if reward / risk < 1.5:
-        print(symbol, "Risk reward too small — skipping trade")
+        print(symbol, "RR too small — skipping trade")
         return
 
     if signal == "BUY":
