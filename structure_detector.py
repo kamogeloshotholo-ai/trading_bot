@@ -1,28 +1,62 @@
 import MetaTrader5 as mt5
 
 
-def detect_retest(symbol, asian_high, asian_low, bias):
+def detect_structure(symbol):
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 10)
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 3)
 
-    if rates is None or len(rates) < 5:
+    if rates is None or len(rates) < 3:
         return None
 
-    last = rates[-1]
-    prev = rates[-2]
+    high1 = rates[0]['high']
+    high2 = rates[1]['high']
 
-    last_close = last['close']
-    prev_low = prev['low']
-    prev_high = prev['high']
+    low1 = rates[0]['low']
+    low2 = rates[1]['low']
 
-    # Sweep Asian LOW
-    if prev_low < asian_low and last_close > asian_low:
-        print("Retest after Asian LOW sweep")
-        return "BUY"
+    if high1 > high2 and low1 > low2:
+        return "UP"
 
-    # Sweep Asian HIGH
-    if prev_high > asian_high and last_close < asian_high:
-        print("Retest after Asian HIGH sweep")
-        return "SELL"
+    if high1 < high2 and low1 < low2:
+        return "DOWN"
+
+    return "NONE"
+
+
+def get_recent_swing(symbol, timeframe, bars=20):
+
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
+
+    highs = [r['high'] for r in rates]
+    lows = [r['low'] for r in rates]
+
+    swing_high = max(highs)
+    swing_low = min(lows)
+
+    return swing_high, swing_low
+
+
+def get_liquidity_target(symbol, timeframe, direction, bars=50):
+
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
+
+    highs = [r['high'] for r in rates]
+    lows = [r['low'] for r in rates]
+
+    current_price = rates[0]['close']
+
+    if direction == "BUY":
+
+        targets = [h for h in highs if h > current_price]
+
+        if targets:
+            return min(targets)
+
+    if direction == "SELL":
+
+        targets = [l for l in lows if l < current_price]
+
+        if targets:
+            return max(targets)
 
     return None
