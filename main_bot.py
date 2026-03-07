@@ -9,7 +9,7 @@ from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 
 
-# Pairs the bot will trade
+# Trading pairs
 symbols = ["EURUSD", "XAUUSD", "NAS100"]
 
 
@@ -18,9 +18,16 @@ max_trades_per_day = 2
 trades_today = 0
 
 
-# Track candles per symbol
+# Track last candle per symbol
 last_candle_time = {}
 
+# Track day for reset
+current_day = datetime.now().day
+
+
+# -----------------------------
+# CONNECT TO MT5
+# -----------------------------
 
 def connect():
 
@@ -30,6 +37,10 @@ def connect():
 
     print("MT5 connected")
 
+
+# -----------------------------
+# NEW CANDLE DETECTION
+# -----------------------------
 
 def new_candle(symbol):
 
@@ -48,11 +59,16 @@ def new_candle(symbol):
         return False
 
     if candle_time != last_candle_time[symbol]:
+
         last_candle_time[symbol] = candle_time
         return True
 
     return False
 
+
+# -----------------------------
+# STRATEGY CHECK
+# -----------------------------
 
 def check_trade_signal(symbol):
 
@@ -71,16 +87,43 @@ def check_trade_signal(symbol):
     return None
 
 
+# -----------------------------
+# ASIAN SESSION CHECK
+# -----------------------------
+
 def asian_session_running():
 
     now = datetime.now()
 
-    # Asian session assumed 00:00 → 07:00 server time
+    # Asian session assumed 00:00 → 07:00
     if now.hour < 7:
         return True
 
     return False
 
+
+# -----------------------------
+# DAILY RESET
+# -----------------------------
+
+def reset_daily_trades():
+
+    global trades_today
+    global current_day
+
+    now = datetime.now()
+
+    if now.day != current_day:
+
+        trades_today = 0
+        current_day = now.day
+
+        print("Daily trade counter reset")
+
+
+# -----------------------------
+# MAIN BOT
+# -----------------------------
 
 def run_bot():
 
@@ -92,18 +135,32 @@ def run_bot():
 
     while True:
 
+        # Reset trades each new day
+        reset_daily_trades()
+
+        # Wait for Asian session to finish
         if asian_session_running():
-            print("Asian session running... waiting for London setup")
+
+            print("Asian session running... waiting for London")
+
             time.sleep(300)
             continue
 
+
+        # Manage open trades
         manage_open_trades()
 
+
+        # Check trade limit
         if trades_today >= max_trades_per_day:
+
             print("Daily trade limit reached")
+
             time.sleep(300)
             continue
 
+
+        # Scan symbols
         for symbol in symbols:
 
             if not new_candle(symbol):
@@ -127,7 +184,13 @@ def run_bot():
 
                 print(symbol, "No trade setup")
 
+
+        print("Waiting for next candle...")
         time.sleep(300)
 
+
+# -----------------------------
+# START BOT
+# -----------------------------
 
 run_bot()
