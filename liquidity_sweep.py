@@ -1,15 +1,16 @@
 import MetaTrader5 as mt5
-from datetime import datetime
 from asian_range import get_asian_range
 
 
 def detect_liquidity_sweep(symbol):
 
+    # Get Asian range
     asian_high, asian_low = get_asian_range(symbol)
 
     if asian_high is None or asian_low is None:
         return None
 
+    # Get last 2 candles
     rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 2)
 
     if rates is None or len(rates) < 2:
@@ -21,7 +22,7 @@ def detect_liquidity_sweep(symbol):
     low = last_candle["low"]
     close = last_candle["close"]
 
-    # SELL setup (sweep above Asian high)
+    # SELL sweep (above Asian High)
     if high > asian_high and close < asian_high:
 
         print(symbol, "Liquidity sweep ABOVE Asian High")
@@ -31,7 +32,7 @@ def detect_liquidity_sweep(symbol):
             "level": asian_high
         }
 
-    # BUY setup (sweep below Asian low)
+    # BUY sweep (below Asian Low)
     if low < asian_low and close > asian_low:
 
         print(symbol, "Liquidity sweep BELOW Asian Low")
