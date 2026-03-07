@@ -9,30 +9,34 @@ from trade_manager import manage_open_trades
 from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 
 
-# Symbols the bot trades
-symbols = ["EURUSD", "XAUUSD", "NAS100"]
+# --------------------------------
+# PAIRS THE BOT WILL TRADE
+# --------------------------------
+
+symbols = ["EURUSD", "XAUUSD", "NAS100", "BTCUSD"]
 
 
-# Risk controls
+# --------------------------------
+# RISK CONTROL
+# --------------------------------
+
 max_trades_per_day = 2
 trades_today = 0
 
 
-# Track last candle time
+# --------------------------------
+# MEMORY VARIABLES
+# --------------------------------
+
 last_candle_time = {}
+sweep_setups = {}
 
-
-# Track day reset
 current_day = datetime.now().day
 
 
-# Store sweeps waiting for retest
-sweep_setups = {}
-
-
-# -----------------------------
+# --------------------------------
 # CONNECT TO MT5
-# -----------------------------
+# --------------------------------
 
 def connect():
 
@@ -57,10 +61,12 @@ def connect():
 
         print(f"Account balance = {balance}")
 
+    print("Connection complete")
 
-# -----------------------------
-# NEW CANDLE DETECTION
-# -----------------------------
+
+# --------------------------------
+# DETECT NEW M5 CANDLE
+# --------------------------------
 
 def new_candle(symbol):
 
@@ -84,9 +90,9 @@ def new_candle(symbol):
     return False
 
 
-# -----------------------------
+# --------------------------------
 # ASIAN SESSION CHECK
-# -----------------------------
+# --------------------------------
 
 def asian_session_running():
 
@@ -98,9 +104,9 @@ def asian_session_running():
     return False
 
 
-# -----------------------------
-# RESET DAILY TRADES
-# -----------------------------
+# --------------------------------
+# RESET DAILY TRADE LIMIT
+# --------------------------------
 
 def reset_daily_trades():
 
@@ -117,9 +123,9 @@ def reset_daily_trades():
         print("Daily trade counter reset")
 
 
-# -----------------------------
+# --------------------------------
 # MAIN BOT LOOP
-# -----------------------------
+# --------------------------------
 
 def run_bot():
 
@@ -135,13 +141,7 @@ def run_bot():
         reset_daily_trades()
         reset_sweep_memory()
 
-        if asian_session_running():
-
-            print("Asian session running... waiting for London")
-
-            time.sleep(60)
-            continue
-
+        # Manage open trades
         manage_open_trades()
 
         if trades_today >= max_trades_per_day:
@@ -151,10 +151,12 @@ def run_bot():
             time.sleep(60)
             continue
 
+
         for symbol in symbols:
 
             if not new_candle(symbol):
                 continue
+
 
             print("New M5 candle detected on", symbol)
 
@@ -167,6 +169,7 @@ def run_bot():
 
                     print(symbol, "Sweep already detected today — skipping")
                     continue
+
 
                 print(symbol, "Liquidity sweep detected")
 
@@ -190,6 +193,7 @@ def run_bot():
                     print("Trades today:", trades_today)
 
                     del sweep_setups[symbol]
+
 
         print("Waiting for next candle...")
 
