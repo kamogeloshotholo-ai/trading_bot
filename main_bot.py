@@ -8,17 +8,30 @@ from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 
 
+# Pairs the bot trades
 symbols = ["EURUSD", "XAUUSD", "NAS100"]
 
+
+# Risk controls
 max_trades_per_day = 2
 trades_today = 0
 
+
+# Candle tracking
 last_candle_time = {}
 
+
+# Day tracking
 current_day = datetime.now().day
 
+
+# Sweep memory
 sweep_setups = {}
 
+
+# -----------------------------
+# CONNECT TO MT5
+# -----------------------------
 
 def connect():
 
@@ -28,6 +41,17 @@ def connect():
 
     print("MT5 connected")
 
+    account = mt5.account_info()
+
+    if account is None:
+        print("Failed to get account info")
+    else:
+        print("Account balance:", account.balance)
+
+
+# -----------------------------
+# NEW CANDLE DETECTION
+# -----------------------------
 
 def new_candle(symbol):
 
@@ -51,6 +75,10 @@ def new_candle(symbol):
     return False
 
 
+# -----------------------------
+# ASIAN SESSION FILTER
+# -----------------------------
+
 def asian_session_running():
 
     now = datetime.now()
@@ -60,6 +88,10 @@ def asian_session_running():
 
     return False
 
+
+# -----------------------------
+# DAILY TRADE RESET
+# -----------------------------
 
 def reset_daily_trades():
 
@@ -75,6 +107,10 @@ def reset_daily_trades():
 
         print("Daily trade counter reset")
 
+
+# -----------------------------
+# MAIN BOT
+# -----------------------------
 
 def run_bot():
 
@@ -96,7 +132,9 @@ def run_bot():
             time.sleep(300)
             continue
 
+
         manage_open_trades()
+
 
         if trades_today >= max_trades_per_day:
 
@@ -105,17 +143,24 @@ def run_bot():
             time.sleep(300)
             continue
 
+
         for symbol in symbols:
 
             if not new_candle(symbol):
                 continue
 
+
             print("New M5 candle detected on", symbol)
+
 
             sweep = detect_liquidity_sweep(symbol)
 
             if sweep:
+
+                print(symbol, "Liquidity sweep detected")
+
                 sweep_setups[symbol] = sweep
+
 
             if symbol in sweep_setups:
 
@@ -133,7 +178,9 @@ def run_bot():
 
                     del sweep_setups[symbol]
 
+
         print("Waiting for next candle...")
+
         time.sleep(300)
 
 
