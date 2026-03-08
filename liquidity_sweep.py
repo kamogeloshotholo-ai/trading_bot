@@ -1,13 +1,13 @@
 import MetaTrader5 as mt5
-from asian_range import get_asian_range
+from liquidity_map import get_liquidity_levels
 
 
-def detect_liquidity_sweep(symbol):
+def detect_liquidity_sweep(symbol, liquidity_source="ASIAN"):
 
-    # Get Asian range
-    asian_high, asian_low = get_asian_range(symbol)
+    # Get liquidity levels
+    liquidity_high, liquidity_low = get_liquidity_levels(symbol, liquidity_source)
 
-    if asian_high is None or asian_low is None:
+    if liquidity_high is None or liquidity_low is None:
         return None
 
     # Get last 2 candles
@@ -22,26 +22,26 @@ def detect_liquidity_sweep(symbol):
     low = candle["low"]
     close = candle["close"]
 
-    # Sweep ABOVE Asian High
-    if high > asian_high and close < asian_high:
+    # Sweep ABOVE liquidity high
+    if high > liquidity_high and close < liquidity_high:
 
-        print(symbol, "Liquidity sweep ABOVE Asian High")
+        print(symbol, "Liquidity sweep ABOVE high")
 
         return {
             "direction": "SELL",
-            "level": asian_high,
+            "level": liquidity_high,
             "sweep_high": high,
             "sweep_low": low
         }
 
-    # Sweep BELOW Asian Low
-    if low < asian_low and close > asian_low:
+    # Sweep BELOW liquidity low
+    if low < liquidity_low and close > liquidity_low:
 
-        print(symbol, "Liquidity sweep BELOW Asian Low")
+        print(symbol, "Liquidity sweep BELOW low")
 
         return {
             "direction": "BUY",
-            "level": asian_low,
+            "level": liquidity_low,
             "sweep_high": high,
             "sweep_low": low
         }

@@ -30,6 +30,16 @@ page = st.sidebar.radio(
     ["Dashboard", "Run Bot", "Backtest", "Optimizer"]
 )
 
+# Liquidity source selector
+liquidity_source = st.sidebar.selectbox(
+    "Liquidity Source",
+    ["ASIAN", "DAILY", "WEEKLY", "CUSTOM"],
+    index=0
+)
+
+# Save to session state
+st.session_state.liquidity_source = liquidity_source
+
 # keep a reference to the bot process in session state so we can stop it later
 if 'bot_process' not in st.session_state:
     st.session_state.bot_process = None
@@ -73,6 +83,16 @@ BTCUSD""")
     except Exception as e:
         st.error(f"Error loading trade log: {e}")
 
+    # Show weekly performance if available
+    try:
+        if os.path.exists("weekly_performance.txt"):
+            with open("weekly_performance.txt", "r") as f:
+                perf = f.read()
+            st.subheader("Weekly Performance Summary")
+            st.text(perf)
+    except Exception as e:
+        st.error(f"Error loading performance summary: {e}")
+
 if page == "Run Bot":
 
     st.header("Trading Bot Control")
@@ -83,10 +103,13 @@ if page == "Run Bot":
             if st.session_state.bot_process is None or st.session_state.bot_process.poll() is not None:
                 with open("bot_log.txt", "w") as f:
                     f.write("")  # clear log
+                env = os.environ.copy()
+                env["LIQUIDITY_SOURCE"] = st.session_state.liquidity_source
                 st.session_state.bot_process = subprocess.Popen(["python", "main_bot.py"],
                                                                stdout=open("bot_log.txt", "a"),
                                                                stderr=subprocess.STDOUT,
-                                                               text=True)
+                                                               text=True,
+                                                               env=env)
                 st.success("Bot started")
             else:
                 st.warning("Bot already running")

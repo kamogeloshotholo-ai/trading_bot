@@ -1,12 +1,39 @@
 import time
 import MetaTrader5 as mt5
 from datetime import datetime
+import os
 
 from liquidity_sweep import detect_liquidity_sweep
 from retest_detector import detect_retest
 from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
+from performance_summary import generate_performance_summary
+
+
+# -----------------------------
+# H4 BIAS CHECK
+# -----------------------------
+
+def get_h4_bias(symbol):
+    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 3)
+
+    if rates is None or len(rates) < 3:
+        return None
+
+    high1 = rates[0]["high"]
+    high2 = rates[1]["high"]
+
+    low1 = rates[0]["low"]
+    low2 = rates[1]["low"]
+
+    if high1 > high2 and low1 > low2:
+        return "UP"
+
+    if high1 < high2 and low1 < low2:
+        return "DOWN"
+
+    return "NONE"
 
 
 # -----------------------------
@@ -14,6 +41,9 @@ from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 # -----------------------------
 
 symbols = ["EURUSD", "XAUUSD", "NAS100", "BTCUSD"]
+
+# Liquidity source: "ASIAN", "DAILY", "WEEKLY", "CUSTOM"
+LIQUIDITY_SOURCE = os.getenv("LIQUIDITY_SOURCE", "ASIAN")
 
 
 # -----------------------------
@@ -32,6 +62,7 @@ last_candle_time = {}
 sweep_setups = {}
 
 current_day = datetime.now().day
+current_week = datetime.now().isocalendar()[1]  # Week number
 
 
 # -----------------------------
@@ -89,8 +120,16 @@ def reset_daily_trades():
     global trades_today
     global current_day
     global sweep_setups
+    global current_week
 
     now = datetime.now()
+    week = now.isocalendar()[1]
+
+    if week != current_week:
+        # New week: generate performance summary
+        summary = generate_performance_summary()
+        print(f"[{datetime.now()}] Weekly Performance Summary:\n{summary}")
+        current_week = week
 
     if now.day != current_day:
 
@@ -139,7 +178,7 @@ def run_bot():
 
             print(f"[{datetime.now()}] New M5 candle detected on {symbol}")
 
-            sweep = detect_liquidity_sweep(symbol)
+            sweep = detect_liquidity_sweep(symbol, LIQUIDITY_SOURCE)
 
             if sweep:
                 print(f"[{datetime.now()}] {symbol} Sweep detected: {sweep}")
@@ -161,6 +200,20 @@ def run_bot():
 
                 if signal:
                     print(f"[{datetime.now()}] {symbol} Retest signal: {signal}")
+
+                    # Check H4 bias for high probability
+                    bias = get_h4_bias(symbol)
+                    required_bias = "UP" if signal == "BUY" else "DOWN"
+
+                    if bias != required_bias:
+                        print(f"[{datetime.now()}] {symbol} Bias {bias} not matching required {required_bias}, skipping trade")
+                        continue
+
+                    # Check if position already open
+                    positions = mt5.positions_get(symbol=symbol)
+                    if positions and len(positions) > 0:
+                        print(f"[{datetime.now()}] {symbol} Position already open, skipping trade")
+                        continue
 
                     execute_trade(symbol, signal, sweep_setups[symbol])
 
