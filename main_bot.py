@@ -3,12 +3,43 @@ import MetaTrader5 as mt5
 from datetime import datetime
 import os
 
+# Demo mode flag - set to True to run without MT5 (for testing)
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
 from liquidity_sweep import detect_liquidity_sweep
 from retest_detector import detect_retest
 from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 from performance_summary import generate_performance_summary
+
+
+# -----------------------------
+# SESSION MANAGEMENT
+# -----------------------------
+
+SESSIONS = {
+    "ASIAN": {"start": 0, "end": 6, "active_symbols": ["XAUUSD", "BTCUSD"]},  # Low activity, focus on gold/crypto
+    "LONDON": {"start": 8, "end": 16, "active_symbols": ["EURUSD", "GBPUSD"]},  # High activity for EUR/GBP
+    "NEW_YORK": {"start": 13.5, "end": 20, "active_symbols": ["EURUSD", "USDJPY", "NAS100"]},  # High activity
+}
+
+def get_current_session():
+    now = datetime.now()
+    hour = now.hour + now.minute / 60.0  # decimal hour
+
+    for session, times in SESSIONS.items():
+        if times["start"] <= hour < times["end"]:
+            return session, times
+    return "OFF_HOURS", {"active_symbols": []}  # Low activity, scan all but less frequently
+
+def get_scan_interval(session):
+    if session in ["LONDON", "NEW_YORK"]:
+        return 15  # Scan every 15s during active
+    elif session == "ASIAN":
+        return 60  # Slower during Asian
+    else:
+        return 120  # Very slow off hours
 
 
 # -----------------------------
@@ -70,6 +101,10 @@ current_week = datetime.now().isocalendar()[1]  # Week number
 # -----------------------------
 
 def connect():
+
+    if DEMO_MODE:
+        print(f"[{datetime.now()}] DEMO MODE: Skipping MT5 connection")
+        return
 
     print(f"[{datetime.now()}] Connecting to MT5...")
 
@@ -161,14 +196,18 @@ def run_bot():
 
         manage_open_trades()
 
-        if trades_today >= max_trades_per_day:
+        session, session_info = get_current_session()
+        active_symbols = session_info["active_symbols"] or symbols  # Use session-specific or all
+        scan_interval = get_scan_interval(session)
 
+        print(f"[{datetime.now()}] Current session: {session}, Active symbols: {active_symbols}, Scan interval: {scan_interval}s")
+
+        if trades_today >= max_trades_per_day:
             print(f"[{datetime.now()}] Daily trade limit reached ({trades_today}/{max_trades_per_day})")
-            time.sleep(60)
+            time.sleep(scan_interval)
             continue
 
-
-        for symbol in symbols:
+        for symbol in active_symbols:
 
             print(f"[{datetime.now()}] Checking {symbol}...")
 
@@ -227,8 +266,8 @@ def run_bot():
             else:
                 print(f"[{datetime.now()}] {symbol} No active sweep setup")
 
-        print(f"[{datetime.now()}] Waiting for next candle...")
-        time.sleep(30)
+        print(f"[{datetime.now()}] Waiting for next scan ({scan_interval}s)...")
+        time.sleep(scan_interval)
 
 
 run_bot()

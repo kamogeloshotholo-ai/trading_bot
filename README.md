@@ -7,6 +7,7 @@ This repository contains a simple algorithmic trading bot built on MetaTrader 5 
 - **Liquidity Map Engine**: Configurable liquidity sources (Asian, Daily, Weekly, Custom) for trading any liquidity pool, not just Asian session.
 - **AI-Powered Optimizer**: Uses Bayesian optimization (via Optuna) to intelligently search for best stop-loss/take-profit combinations across symbols, learning from trial results for efficient parameter tuning.
 - **Weekly Performance Summary**: Automatic performance check every week, logging win rate, profit/loss, and trade stats to `weekly_performance.txt`.
+- **Session-Aware Trading**: Adapts scanning frequency and symbol focus based on market sessions (Asian, London, New York) for optimal performance during high/low activity periods.
 - Asian range liquidity sweep strategy with retest entries
 - Connection to MetaTrader5 for live trading
 - Backtesting and optimizer utilities
@@ -101,5 +102,6 @@ Set the following environment variables for security and configuration:
 
 - `TRADING_BOT_PASSWORD`: Password for web app access (default: "tradingbot2026")
 - `LIQUIDITY_SOURCE`: Liquidity source for the bot ("ASIAN", "DAILY", "WEEKLY", "CUSTOM"; default: "ASIAN")
+- `DEMO_MODE`: Set to "true" to run without MT5 for testing (default: "false")
 
 Feel free to modify the strategy, add configuration controls, or integrate authentication for wider sharing.

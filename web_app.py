@@ -48,6 +48,14 @@ if page == "Dashboard":
 
     st.header("Bot Status")
 
+    # Show current session
+    try:
+        from main_bot import get_current_session
+        session, _ = get_current_session()
+        st.write(f"**Current Session**: {session}")
+    except:
+        st.write("**Current Session**: Unknown")
+
     st.write("**Strategy**")
     st.markdown("""- Asian Range
 - Liquidity Sweep
