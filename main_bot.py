@@ -40,20 +40,20 @@ current_day = datetime.now().day
 
 def connect():
 
-    print("Connecting to MT5...")
+    print(f"[{datetime.now()}] Connecting to MT5...")
 
     if not mt5.initialize():
-        print("MT5 initialization failed")
+        print(f"[{datetime.now()}] MT5 initialization failed")
         quit()
 
-    print("MT5 connected")
+    print(f"[{datetime.now()}] MT5 connected")
 
     account = mt5.account_info()
 
     if account is not None:
-        print("Account balance:", account.balance)
+        print(f"[{datetime.now()}] Account balance: {account.balance}")
     else:
-        print("Account info not available")
+        print(f"[{datetime.now()}] Account info not available")
 
 
 # -----------------------------
@@ -99,7 +99,7 @@ def reset_daily_trades():
         # forget any stored setups from previous day
         sweep_setups.clear()
 
-        print("Daily trades reset")
+        print(f"[{datetime.now()}] Daily trades reset")
 
 
 # -----------------------------
@@ -113,7 +113,7 @@ def run_bot():
 
     connect()
 
-    print("BOT STARTED")
+    print(f"[{datetime.now()}] BOT STARTED")
 
     while True:
 
@@ -124,53 +124,57 @@ def run_bot():
 
         if trades_today >= max_trades_per_day:
 
-            print("Daily trade limit reached")
+            print(f"[{datetime.now()}] Daily trade limit reached ({trades_today}/{max_trades_per_day})")
             time.sleep(60)
             continue
 
 
         for symbol in symbols:
 
+            print(f"[{datetime.now()}] Checking {symbol}...")
+
             if not new_candle(symbol):
+                print(f"[{datetime.now()}] No new candle on {symbol}")
                 continue
 
-            print("New M5 candle detected on", symbol)
+            print(f"[{datetime.now()}] New M5 candle detected on {symbol}")
 
             sweep = detect_liquidity_sweep(symbol)
 
             if sweep:
+                print(f"[{datetime.now()}] {symbol} Sweep detected: {sweep}")
 
                 if sweep_already_detected(symbol):
-
-                    print(symbol, "Sweep already detected")
+                    print(f"[{datetime.now()}] {symbol} Sweep already processed, skipping")
                     continue
 
-                print(symbol, "Liquidity sweep detected")
-
+                print(f"[{datetime.now()}] {symbol} Storing new sweep")
                 store_sweep(symbol, sweep)
-
                 sweep_setups[symbol] = sweep
-
+            else:
+                print(f"[{datetime.now()}] {symbol} No sweep detected")
 
             if symbol in sweep_setups:
+                print(f"[{datetime.now()}] {symbol} Checking for retest on existing sweep")
 
                 signal = detect_retest(symbol, sweep_setups[symbol])
 
                 if signal:
-
-                    print(symbol, "Trade signal:", signal)
+                    print(f"[{datetime.now()}] {symbol} Retest signal: {signal}")
 
                     execute_trade(symbol, signal, sweep_setups[symbol])
 
                     trades_today += 1
 
-                    print("Trades today:", trades_today)
+                    print(f"[{datetime.now()}] {symbol} Trade executed. Trades today: {trades_today}")
 
                     del sweep_setups[symbol]
+                else:
+                    print(f"[{datetime.now()}] {symbol} No retest signal")
+            else:
+                print(f"[{datetime.now()}] {symbol} No active sweep setup")
 
-
-        print("Waiting for next candle...")
-
+        print(f"[{datetime.now()}] Waiting for next candle...")
         time.sleep(30)
 
 

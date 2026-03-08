@@ -135,6 +135,16 @@ if page == "Optimizer":
     st.header("Run AI Optimizer")
 
     if st.button("Run Optimization"):
-        with st.spinner("Running optimization..."):
+        with st.spinner("Running AI optimization..."):
             result = subprocess.run(["python", "optimizer.py"], capture_output=True, text=True)
         st.text_area("Optimizer output", result.stdout + result.stderr, height=300)
+
+        # Show results if available
+        try:
+            import pandas as pd
+            if os.path.exists("optimization_results.csv"):
+                df = pd.read_csv("optimization_results.csv")
+                st.subheader("Optimization Trials")
+                st.dataframe(df)
+        except Exception as e:
+            st.error(f"Error loading optimization results: {e}")

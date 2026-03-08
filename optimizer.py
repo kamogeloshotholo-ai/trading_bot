@@ -1,42 +1,32 @@
-import itertools
+import optuna
 from backtester import run_backtest
 
 symbols = ["EURUSD", "XAUUSD", "NAS100"]
 
-stop_losses = [10, 15, 20, 25]
-take_profits = [20, 30, 40, 50]
+def objective(trial):
+    symbol = trial.suggest_categorical("symbol", symbols)
+    stop_loss = trial.suggest_int("stop_loss", 5, 50, step=5)  # pips
+    take_profit = trial.suggest_int("take_profit", 10, 100, step=10)  # pips
 
-best_balance = 0
-best_params = None
-best_symbol = None
+    result = run_backtest(symbol, stop_loss, take_profit)
+    balance = result["balance"]
+
+    return balance  # maximize balance
 
 def optimize():
+    study = optuna.create_study(direction="maximize")
+    study.optimize(objective, n_trials=50)  # run 50 trials
 
-    global best_balance, best_params, best_symbol
-
-    for symbol in symbols:
-
-        print(f"\nTesting symbol: {symbol}")
-
-        for sl, tp in itertools.product(stop_losses, take_profits):
-
-            print(f"Testing SL={sl} TP={tp}")
-
-            result = run_backtest(symbol, sl, tp)
-
-            balance = result["balance"]
-
-            if balance > best_balance:
-
-                best_balance = balance
-                best_params = (sl, tp)
-                best_symbol = symbol
-
+    best_trial = study.best_trial
     print("\nBEST RESULT")
-    print("Symbol:", best_symbol)
-    print("Balance:", best_balance)
-    print("Best Parameters:", best_params)
+    print("Symbol:", best_trial.params["symbol"])
+    print("Stop Loss:", best_trial.params["stop_loss"])
+    print("Take Profit:", best_trial.params["take_profit"])
+    print("Balance:", best_trial.value)
 
+    # Save study for later analysis
+    study.trials_dataframe().to_csv("optimization_results.csv", index=False)
+    print("Optimization results saved to optimization_results.csv")
 
 if __name__ == "__main__":
     optimize()

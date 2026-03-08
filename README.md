@@ -4,6 +4,7 @@ This repository contains a simple algorithmic trading bot built on MetaTrader 5 
 
 ## Features
 
+- **AI-Powered Optimizer**: Uses Bayesian optimization (via Optuna) to intelligently search for best stop-loss/take-profit combinations across symbols, learning from trial results for efficient parameter tuning.
 - Asian range liquidity sweep strategy with retest entries
 - Connection to MetaTrader5 for live trading
 - Backtesting and optimizer utilities
