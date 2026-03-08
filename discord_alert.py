@@ -29,7 +29,7 @@ def alert_sweep_detected(symbol, sweep_info):
     recent_activity = sweep_info.get("recent_activity", False)
     confidence = sweep_info.get("confidence", "Medium")
 
-    message = f"🚨 **Enhanced Liquidity Sweep Detected** 🚨\n"
+    message = f"🚨 **Liquidity Sweep Detected** 🚨\n"
     message += f"Symbol: {symbol}\n"
     message += f"Direction: {direction}\n"
     message += f"Level: {level}\n"

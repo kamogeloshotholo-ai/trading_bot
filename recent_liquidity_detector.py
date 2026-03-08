@@ -54,9 +54,15 @@ def detect_recent_liquidity_sweep(symbol, liquidity_source="ASIAN"):
 
     sweep_info = None
 
+    # debug output for inspection
+    print(f"DEBUG {symbol}: candle high={high} low={low} close={close}")
+    print(f"DEBUG liquidity levels high={liquidity_high} low={liquidity_low}")
+
     # Enhanced sweep detection with recent activity confirmation
-    if high > liquidity_high and close < liquidity_high:
-        # Check for recent activity near the level
+    # ONLY return a sweep if it's a confirmed REVERSAL (wick touches, closes back)
+    # Report breakouts for monitoring, but don't trigger trades on them
+    if high >= liquidity_high:
+        # check for recent activity near the level
         recent_activity = False
         if recent_rates is not None:
             for rate in recent_rates[-20:]:  # Last 20 minutes
@@ -64,20 +70,25 @@ def detect_recent_liquidity_sweep(symbol, liquidity_source="ASIAN"):
                     recent_activity = True
                     break
 
-        confidence = "High" if recent_activity else "Medium"
-        print(f"{symbol} Enhanced liquidity sweep ABOVE high (Confidence: {confidence})")
+        reversal = close <= liquidity_high
+        if reversal:
+            confidence = "High" if recent_activity else "Medium"
+            print(f"{symbol} CONFIRMED REVERSAL SWEEP ABOVE high (Confidence: {confidence})")
+            sweep_info = {
+                "direction": "SELL",
+                "level": liquidity_high,
+                "sweep_high": high,
+                "sweep_low": low,
+                "recent_activity": recent_activity,
+                "confidence": confidence,
+                "reversal": True
+            }
+        else:
+            # touched and closed above - breakout, don't trigger trade
+            print(f"{symbol} Breakout touch ABOVE high (close={close} > level={liquidity_high}), no trade signal")
 
-        sweep_info = {
-            "direction": "SELL",
-            "level": liquidity_high,
-            "sweep_high": high,
-            "sweep_low": low,
-            "recent_activity": recent_activity,
-            "confidence": confidence
-        }
-
-    elif low < liquidity_low and close > liquidity_low:
-        # Check for recent activity near the level
+    elif low <= liquidity_low:
+        # check for recent activity near the level
         recent_activity = False
         if recent_rates is not None:
             for rate in recent_rates[-20:]:  # Last 20 minutes
@@ -85,17 +96,22 @@ def detect_recent_liquidity_sweep(symbol, liquidity_source="ASIAN"):
                     recent_activity = True
                     break
 
-        confidence = "High" if recent_activity else "Medium"
-        print(f"{symbol} Enhanced liquidity sweep BELOW low (Confidence: {confidence})")
-
-        sweep_info = {
-            "direction": "BUY",
-            "level": liquidity_low,
-            "sweep_high": high,
-            "sweep_low": low,
-            "recent_activity": recent_activity,
-            "confidence": confidence
-        }
+        reversal = close >= liquidity_low
+        if reversal:
+            confidence = "High" if recent_activity else "Medium"
+            print(f"{symbol} CONFIRMED REVERSAL SWEEP BELOW low (Confidence: {confidence})")
+            sweep_info = {
+                "direction": "BUY",
+                "level": liquidity_low,
+                "sweep_high": high,
+                "sweep_low": low,
+                "recent_activity": recent_activity,
+                "confidence": confidence,
+                "reversal": True
+            }
+        else:
+            # touched and closed below - breakout, don't trigger trade
+            print(f"{symbol} Breakout touch BELOW low (close={close} < level={liquidity_low}), no trade signal")
 
     return sweep_info
 
