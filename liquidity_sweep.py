@@ -8,6 +8,8 @@ if not DEMO_MODE:
 else:
     TIMEFRAME_M5 = 5
 
+from liquidity_map import get_liquidity_levels
+
 
 def detect_liquidity_sweep(symbol, liquidity_source="ASIAN"):
 

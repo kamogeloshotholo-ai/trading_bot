@@ -52,16 +52,20 @@ def manage_open_trades():
 
             point = symbol_info.point
             digits = symbol_info.digits
+            stop_level = symbol_info.trade_stops_level  # Minimum stop distance in points
+
+            # Ensure SL/TP distances meet minimum requirements
+            min_sl_distance = max(500, stop_level)
+            min_tp_distance = max(1000, stop_level)
 
             if position.type == POSITION_TYPE_BUY:
                 price = tick.ask
-                # Use safe margins: 100 points for SL, 200 points for TP
-                sl = round(price - 100 * point, digits)
-                tp = round(price + 200 * point, digits)
+                sl = round(price - min_sl_distance * point, digits)
+                tp = round(price + min_tp_distance * point, digits)
             else:
                 price = tick.bid
-                sl = round(price + 100 * point, digits)
-                tp = round(price - 200 * point, digits)
+                sl = round(price + min_sl_distance * point, digits)
+                tp = round(price - min_tp_distance * point, digits)
 
             request = {
                 "action": TRADE_ACTION_SLTP,

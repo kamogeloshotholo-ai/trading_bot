@@ -4,7 +4,7 @@ import os
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 # default values for risk calculations
-DEFAULT_RISK_PERCENT = 1.0  # percent of account balance to risk per trade
+DEFAULT_RISK_PERCENT = 5.0  # percent of account balance to risk per trade
 PIP_VALUE_PER_LOT = 10      # typical pip value for a standard lot
 
 

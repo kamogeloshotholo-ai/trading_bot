@@ -224,6 +224,8 @@ def run_bot():
     global trades_today
     global sweep_setups
 
+    print(f"[{datetime.now()}] Starting bot...")
+
     connect()
 
     print(f"[{datetime.now()}] BOT STARTED")
