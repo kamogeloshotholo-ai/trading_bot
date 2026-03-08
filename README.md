@@ -92,10 +92,10 @@ Open the URL shown in the terminal (usually `http://localhost:8501`) in your bro
 │  web_app.py         # Streamlit interface
 ```
 
-## Notes
+### Environment Variables
 
-- The trading bot will attempt to execute real trades; use a demo account when testing.
-- The web app currently runs the bot as a subprocess and captures its stdout; it does not automatically restart if the process stops.
-- `trade_log.csv` is used to display recent trades in the dashboard.
+Set the following environment variables for security:
+
+- `TRADING_BOT_PASSWORD`: Password for web app access (default: "tradingbot2026")
 
 Feel free to modify the strategy, add configuration controls, or integrate authentication for wider sharing.

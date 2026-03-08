@@ -5,8 +5,8 @@ import os
 
 st.set_page_config(page_title="AI Trading Bot", layout="wide")
 
-# Simple password protection
-PASSWORD = "tradingbot2026"  # Change this!
+# Simple password protection - use env var for security
+PASSWORD = os.getenv("TRADING_BOT_PASSWORD", "tradingbot2026")  # Set env var for production
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -39,34 +39,45 @@ if page == "Dashboard":
     st.header("Bot Status")
 
     st.write("**Strategy**")
-    st.markdown("- Asian Range  
-- Liquidity Sweep  
-- Retest Entry  
-- H4 Bias Filter")
+    st.markdown("""- Asian Range
+- Liquidity Sweep
+- Retest Entry
+- H4 Bias Filter""")
 
     st.write("**Pairs**")
-    st.markdown("EURUSD  
-XAUUSD  
-NAS100  
-BTCUSD")
+    st.markdown("""EURUSD
+XAUUSD
+NAS100
+BTCUSD""")
 
     # show recent trades if log exists
     try:
         import pandas as pd
-        if st.button("Refresh Trades"):
-            st.rerun()
-        df = pd.read_csv("trade_log.csv", header=None,
-                         names=["time","symbol","direction","entry","sl","tp","volume"])
-        st.subheader("Recent trades")
-        st.dataframe(df.tail(20))
-    except Exception:
-        st.info("No trade log available yet.")
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("Refresh Trades"):
+                st.rerun()
+        with col2:
+            if st.button("Clear Trade Log"):
+                if os.path.exists("trade_log.csv"):
+                    os.remove("trade_log.csv")
+                    st.success("Trade log cleared")
+                    st.rerun()
+        if os.path.exists("trade_log.csv"):
+            df = pd.read_csv("trade_log.csv", header=None,
+                             names=["time","symbol","direction","entry","sl","tp","volume"])
+            st.subheader("Recent trades")
+            st.dataframe(df.tail(20))
+        else:
+            st.info("No trade log available yet.")
+    except Exception as e:
+        st.error(f"Error loading trade log: {e}")
 
 if page == "Run Bot":
 
     st.header("Trading Bot Control")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
         if st.button("Start Trading Bot"):
             if st.session_state.bot_process is None or st.session_state.bot_process.poll() is not None:
@@ -87,12 +98,28 @@ if page == "Run Bot":
                 st.success("Bot stopped")
             else:
                 st.info("Bot is not running")
+    with col3:
+        if st.button("Refresh Bot Output"):
+            st.rerun()
 
     # show output log from file
-    if os.path.exists("bot_log.txt"):
-        with open("bot_log.txt", "r") as f:
-            logs = f.read()
-        st.text_area("Bot output", logs, height=200)
+    try:
+        if os.path.exists("bot_log.txt"):
+            with open("bot_log.txt", "r") as f:
+                logs = f.read()
+            st.text_area("Bot output", logs, height=200)
+        else:
+            st.info("Bot log not available yet.")
+    except Exception as e:
+        st.error(f"Error reading bot log: {e}")
+
+    # Clear log button
+    if st.button("Clear Bot Log"):
+        if os.path.exists("bot_log.txt"):
+            with open("bot_log.txt", "w") as f:
+                f.write("")
+            st.success("Bot log cleared")
+            st.rerun()
 
 if page == "Backtest":
 
