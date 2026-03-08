@@ -88,6 +88,7 @@ def reset_daily_trades():
 
     global trades_today
     global current_day
+    global sweep_setups
 
     now = datetime.now()
 
@@ -95,6 +96,8 @@ def reset_daily_trades():
 
         trades_today = 0
         current_day = now.day
+        # forget any stored setups from previous day
+        sweep_setups.clear()
 
         print("Daily trades reset")
 

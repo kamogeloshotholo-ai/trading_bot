@@ -30,8 +30,13 @@ def sweep_already_detected(symbol):
     return False
 
 
-def store_sweep(symbol, direction):
+def store_sweep(symbol, sweep_info):
+    """Remember a sweep setup so it isn't processed again during the day.
 
-    sweep_memory[symbol] = direction
+    The memory only needs to flag that a sweep occurred; additional data may
+    be stored for debugging or further analysis.
+    """
 
-    print(symbol, "sweep stored in memory:", direction)
+    sweep_memory[symbol] = sweep_info
+
+    print(symbol, "sweep stored in memory:", sweep_info)

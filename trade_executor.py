@@ -48,4 +48,11 @@ def execute_trade(symbol, direction, sweep):
 
     result = mt5.order_send(request)
 
+    # log the trade locally regardless of MT5 response
+    try:
+        from trade_logger import log_trade
+        log_trade(symbol, direction, price, stop_loss, take_profit, lot)
+    except Exception as e:
+        print("Failed to log trade:", e)
+
     print("Trade executed:", result)
