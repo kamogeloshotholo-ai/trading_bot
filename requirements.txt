@@ -2,3 +2,4 @@ streamlit
 pandas
 MetaTrader5
 optuna
+requests

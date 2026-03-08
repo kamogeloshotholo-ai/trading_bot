@@ -1,9 +1,22 @@
-import MetaTrader5 as mt5
+import os
+
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+if not DEMO_MODE:
+    import MetaTrader5 as mt5
+    TIMEFRAME_M5 = mt5.TIMEFRAME_M5
+    TIMEFRAME_H1 = mt5.TIMEFRAME_H1
+else:
+    TIMEFRAME_M5 = 5
+    TIMEFRAME_H1 = 60
 
 
 def detect_structure(symbol):
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 3)
+    if DEMO_MODE:
+        return "UP"
+
+    rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME_M5, 0, 3)
 
     if rates is None or len(rates) < 3:
         return None
@@ -25,6 +38,9 @@ def detect_structure(symbol):
 
 def get_recent_swing(symbol, timeframe, bars=20):
 
+    if DEMO_MODE:
+        return 1.1, 0.9
+
     rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
 
     highs = [r['high'] for r in rates]
@@ -37,6 +53,9 @@ def get_recent_swing(symbol, timeframe, bars=20):
 
 
 def get_liquidity_target(symbol, timeframe, direction, bars=50):
+
+    if DEMO_MODE:
+        return 1.05 if direction == "BUY" else 0.95
 
     rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
 

@@ -1,5 +1,14 @@
-import MetaTrader5 as mt5
-from datetime import datetime, timedelta
+import os
+
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+if not DEMO_MODE:
+    import MetaTrader5 as mt5
+    TIMEFRAME_M5 = mt5.TIMEFRAME_M5
+    TIMEFRAME_H1 = mt5.TIMEFRAME_H1
+else:
+    TIMEFRAME_M5 = 5
+    TIMEFRAME_H1 = 60
 
 # Configurable liquidity sources
 LIQUIDITY_SOURCES = {
@@ -28,6 +37,10 @@ def get_liquidity_levels(symbol, source=DEFAULT_SOURCE):
 
 def get_asian_range(symbol):
     """Original Asian range logic."""
+    if DEMO_MODE:
+        # Mock Asian range
+        return 1.05, 0.95  # Mock levels
+
     now = datetime.now()
     today = now.date()
 
@@ -35,7 +48,7 @@ def get_asian_range(symbol):
     asian_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     asian_end = now.replace(hour=6, minute=0, second=0, microsecond=0)
 
-    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M5, asian_start, asian_end)
+    rates = mt5.copy_rates_range(symbol, TIMEFRAME_M5, asian_start, asian_end)
 
     if rates is None or len(rates) == 0:
         print("Asian session not complete yet")
@@ -55,12 +68,15 @@ def get_asian_range(symbol):
 
 def get_daily_range(symbol):
     """Use previous day's high/low as liquidity."""
+    if DEMO_MODE:
+        return 1.06, 0.94
+
     now = datetime.now()
     yesterday = now - timedelta(days=1)
     start = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
     end = yesterday.replace(hour=23, minute=59, second=59, microsecond=0)
 
-    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M5, start, end)
+    rates = mt5.copy_rates_range(symbol, TIMEFRAME_M5, start, end)
 
     if rates is None or len(rates) == 0:
         return None, None
@@ -79,11 +95,14 @@ def get_daily_range(symbol):
 
 def get_weekly_range(symbol):
     """Use previous week's high/low."""
+    if DEMO_MODE:
+        return 1.07, 0.93
+
     now = datetime.now()
     week_start = now - timedelta(days=now.weekday() + 7)  # Last Monday
     week_end = week_start + timedelta(days=6, hours=23, minutes=59)
 
-    rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M5, week_start, week_end)
+    rates = mt5.copy_rates_range(symbol, TIMEFRAME_M5, week_start, week_end)
 
     if rates is None or len(rates) == 0:
         return None, None
@@ -102,9 +121,12 @@ def get_weekly_range(symbol):
 
 def get_custom_range(symbol):
     """Placeholder for custom logic, e.g., from structure."""
+    if DEMO_MODE:
+        return 1.08, 0.92
+
     # Could use structure_detector for swing levels
     from structure_detector import get_recent_swing
-    swing_high, swing_low = get_recent_swing(symbol, mt5.TIMEFRAME_H1, bars=100)
+    swing_high, swing_low = get_recent_swing(symbol, TIMEFRAME_H1, bars=100)
     print("Custom Liquidity (Swing) Set")
     print("High:", swing_high)
     print("Low:", swing_low)

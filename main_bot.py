@@ -1,17 +1,41 @@
 import time
-import MetaTrader5 as mt5
 from datetime import datetime
 import os
 
 # Demo mode flag - set to True to run without MT5 (for testing)
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
+if not DEMO_MODE:
+    import MetaTrader5 as mt5
+    TIMEFRAME_H4 = mt5.TIMEFRAME_H4
+    TIMEFRAME_M5 = mt5.TIMEFRAME_M5
+    POSITION_TYPE_BUY = mt5.POSITION_TYPE_BUY
+    TRADE_ACTION_SLTP = mt5.TRADE_ACTION_SLTP
+    ORDER_TYPE_BUY = mt5.ORDER_TYPE_BUY
+    ORDER_TYPE_SELL = mt5.ORDER_TYPE_SELL
+    TRADE_ACTION_DEAL = mt5.TRADE_ACTION_DEAL
+    ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
+    ORDER_FILLING_IOC = mt5.ORDER_FILLING_IOC
+else:
+    # Mock constants
+    TIMEFRAME_H4 = 240
+    TIMEFRAME_M5 = 5
+    POSITION_TYPE_BUY = 0
+    TRADE_ACTION_SLTP = 6
+    ORDER_TYPE_BUY = 0
+    ORDER_TYPE_SELL = 1
+    TRADE_ACTION_DEAL = 1
+    ORDER_TIME_GTC = 0
+    ORDER_FILLING_IOC = 0
+
 from liquidity_sweep import detect_liquidity_sweep
 from retest_detector import detect_retest
+from discord_alert import alert_sweep_detected
 from trade_executor import execute_trade
 from trade_manager import manage_open_trades
 from sweep_memory import reset_sweep_memory, sweep_already_detected, store_sweep
 from performance_summary import generate_performance_summary
+from discord_alert import alert_sweep_detected, alert_trade_executed
 
 
 # -----------------------------
@@ -26,6 +50,12 @@ SESSIONS = {
 
 def get_current_session():
     now = datetime.now()
+    weekday = now.weekday()  # 0=Monday, 6=Sunday
+
+    # Weekend: only BTCUSD
+    if weekday >= 5:  # Saturday=5, Sunday=6
+        return "WEEKEND", {"active_symbols": ["BTCUSD"]}
+
     hour = now.hour + now.minute / 60.0  # decimal hour
 
     for session, times in SESSIONS.items():
@@ -38,6 +68,8 @@ def get_scan_interval(session):
         return 15  # Scan every 15s during active
     elif session == "ASIAN":
         return 60  # Slower during Asian
+    elif session == "WEEKEND":
+        return 30  # Moderate for BTCUSD 24/7
     else:
         return 120  # Very slow off hours
 
@@ -47,7 +79,10 @@ def get_scan_interval(session):
 # -----------------------------
 
 def get_h4_bias(symbol):
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 3)
+    if DEMO_MODE:
+        return "UP"  # Mock bias for demo
+
+    rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME_H4, 0, 3)
 
     if rates is None or len(rates) < 3:
         return None
@@ -127,8 +162,12 @@ def connect():
 # -----------------------------
 
 def new_candle(symbol):
+    if DEMO_MODE:
+        # Simulate new candle every scan
+        import random
+        return random.choice([True, False])
 
-    rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_M5, 0, 1)
+    rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME_M5, 0, 1)
 
     if rates is None or len(rates) == 0:
         return False
@@ -229,6 +268,9 @@ def run_bot():
                 print(f"[{datetime.now()}] {symbol} Storing new sweep")
                 store_sweep(symbol, sweep)
                 sweep_setups[symbol] = sweep
+
+                # Send Discord alert
+                alert_sweep_detected(symbol, sweep)
             else:
                 print(f"[{datetime.now()}] {symbol} No sweep detected")
 
@@ -249,16 +291,28 @@ def run_bot():
                         continue
 
                     # Check if position already open
-                    positions = mt5.positions_get(symbol=symbol)
-                    if positions and len(positions) > 0:
-                        print(f"[{datetime.now()}] {symbol} Position already open, skipping trade")
-                        continue
+                    if not DEMO_MODE:
+                        positions = mt5.positions_get(symbol=symbol)
+                        if positions and len(positions) > 0:
+                            print(f"[{datetime.now()}] {symbol} Position already open, skipping trade")
+                            continue
+                    else:
+                        # In demo, assume no positions
+                        pass
 
                     execute_trade(symbol, signal, sweep_setups[symbol])
 
                     trades_today += 1
 
                     print(f"[{datetime.now()}] {symbol} Trade executed. Trades today: {trades_today}")
+
+                    # Send Discord alert
+                    if not DEMO_MODE:
+                        tick = mt5.symbol_info_tick(symbol)
+                        entry_price = tick.ask if signal == "BUY" else tick.bid
+                    else:
+                        entry_price = 1.0  # Mock price
+                    alert_trade_executed(symbol, signal, entry_price)
 
                     del sweep_setups[symbol]
                 else:

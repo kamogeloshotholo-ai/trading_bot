@@ -1,4 +1,7 @@
 import MetaTrader5 as mt5
+import os
+
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 # default values for risk calculations
 DEFAULT_RISK_PERCENT = 1.0  # percent of account balance to risk per trade
@@ -17,6 +20,10 @@ def calculate_lot_size(symbol, stop_loss_price, entry_price, risk_percent=DEFAUL
     Returns:
         float: Lot size rounded to two decimals (minimum 0.01).
     """
+
+    if DEMO_MODE:
+        # Mock lot size
+        return 0.01
 
     account = mt5.account_info()
     if account is None:

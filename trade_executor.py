@@ -1,8 +1,27 @@
-import MetaTrader5 as mt5
-from risk_calculator import calculate_lot_size
+import os
+
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+if not DEMO_MODE:
+    import MetaTrader5 as mt5
+    ORDER_TYPE_BUY = mt5.ORDER_TYPE_BUY
+    ORDER_TYPE_SELL = mt5.ORDER_TYPE_SELL
+    TRADE_ACTION_DEAL = mt5.TRADE_ACTION_DEAL
+    ORDER_TIME_GTC = mt5.ORDER_TIME_GTC
+    ORDER_FILLING_IOC = mt5.ORDER_FILLING_IOC
+else:
+    ORDER_TYPE_BUY = 0
+    ORDER_TYPE_SELL = 1
+    TRADE_ACTION_DEAL = 1
+    ORDER_TIME_GTC = 0
+    ORDER_FILLING_IOC = 0
 
 
 def execute_trade(symbol, direction, sweep):
+
+    if DEMO_MODE:
+        print(f"DEMO: Executing {direction} trade on {symbol}")
+        return
 
     tick = mt5.symbol_info_tick(symbol)
 
@@ -32,18 +51,18 @@ def execute_trade(symbol, direction, sweep):
     lot = calculate_lot_size(symbol, stop_loss, price)
 
     request = {
-        "action": mt5.TRADE_ACTION_DEAL,
+        "action": TRADE_ACTION_DEAL,
         "symbol": symbol,
         "volume": lot,
-        "type": mt5.ORDER_TYPE_BUY if direction == "BUY" else mt5.ORDER_TYPE_SELL,
+        "type": ORDER_TYPE_BUY if direction == "BUY" else ORDER_TYPE_SELL,
         "price": price,
         "sl": stop_loss,
         "tp": take_profit,
         "deviation": 10,
         "magic": 10001,
         "comment": "AI Liquidity Bot",
-        "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_IOC,
+        "type_time": ORDER_TIME_GTC,
+        "type_filling": ORDER_FILLING_IOC,
     }
 
     result = mt5.order_send(request)
