@@ -1,5 +1,9 @@
 import MetaTrader5 as mt5
-import pandas as pd
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
 from datetime import datetime
 
 START_BALANCE = 1000
@@ -26,11 +30,13 @@ def get_data(symbol):
         print("No data for", symbol)
         return None
 
-    df = pd.DataFrame(rates)
-
-    df["time"] = pd.to_datetime(df["time"], unit="s")
-
-    return df
+    if PANDAS_AVAILABLE:
+        df = pd.DataFrame(rates)
+        df["time"] = pd.to_datetime(df["time"], unit="s")
+        return df
+    else:
+        # Return raw rates if pandas not available
+        return rates
 
 
 def get_h4_bias(symbol, time_index):

@@ -1,5 +1,5 @@
 streamlit
-pandas
+pandas  # Optional - code works without it for basic functionality
 MetaTrader5
 optuna
 requests

@@ -28,7 +28,7 @@ else:
     ORDER_TIME_GTC = 0
     ORDER_FILLING_IOC = 0
 
-from liquidity_sweep import detect_liquidity_sweep
+from recent_liquidity_detector import detect_liquidity_sweep
 from retest_detector import detect_retest
 from discord_alert import alert_sweep_detected
 from trade_executor import execute_trade
@@ -326,4 +326,5 @@ def run_bot():
         time.sleep(scan_interval)
 
 
-run_bot()
+if __name__ == "__main__":
+    run_bot()

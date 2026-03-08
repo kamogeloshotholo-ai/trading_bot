@@ -24,7 +24,21 @@ def alert_sweep_detected(symbol, sweep_info):
     """Send alert for sweep detection."""
     direction = sweep_info.get("direction")
     level = sweep_info.get("level")
-    message = f"🚨 **Sweep Detected** 🚨\nSymbol: {symbol}\nDirection: {direction}\nLevel: {level}\nTime: {datetime.now()}"
+
+    # Enhanced information from recent liquidity detection
+    recent_activity = sweep_info.get("recent_activity", False)
+    confidence = sweep_info.get("confidence", "Medium")
+
+    message = f"🚨 **Enhanced Liquidity Sweep Detected** 🚨\n"
+    message += f"Symbol: {symbol}\n"
+    message += f"Direction: {direction}\n"
+    message += f"Level: {level}\n"
+    message += f"Confidence: {confidence}\n"
+
+    if recent_activity:
+        message += f"✅ Recent Activity Confirmed\n"
+
+    message += f"Time: {datetime.now()}"
     send_discord_alert(message)
 
 def alert_trade_executed(symbol, signal, entry_price):

@@ -68,9 +68,66 @@ XAUUSD
 NAS100
 BTCUSD""")
 
+    # Recent Liquidity Monitoring
+    st.subheader("Recent Liquidity Analysis")
+    try:
+        from recent_liquidity_detector import get_recent_liquidity_summary
+
+        symbols = ["EURUSD", "XAUUSD", "NAS100", "BTCUSD"]
+        liquidity_data = []
+
+        for symbol in symbols:
+            try:
+                summary = get_recent_liquidity_summary(symbol)
+                liquidity_data.append({
+                    'Symbol': symbol,
+                    'Volume Clusters': summary.get('volume_clusters_count', 0),
+                    'Rejection Signals': summary.get('rejection_signals_count', 0),
+                    'Traditional High': summary.get('traditional_high', 'N/A'),
+                    'Traditional Low': summary.get('traditional_low', 'N/A'),
+                    'Last Update': summary.get('last_update', 'N/A')
+                })
+            except Exception as e:
+                liquidity_data.append({
+                    'Symbol': symbol,
+                    'Volume Clusters': 'Error',
+                    'Rejection Signals': 'Error',
+                    'Traditional High': 'N/A',
+                    'Traditional Low': 'N/A',
+                    'Last Update': str(e)
+                })
+
+        if PANDAS_AVAILABLE:
+            import pandas as pd
+            df_liquidity = pd.DataFrame(liquidity_data)
+            st.dataframe(df_liquidity)
+        else:
+            st.json(liquidity_data)
+
+        # Order Flow Analysis
+        st.subheader("Order Flow Analysis")
+        for symbol in symbols:
+            try:
+                summary = get_recent_liquidity_summary(symbol)
+                order_flow = summary.get('order_flow_imbalance')
+                if order_flow:
+                    st.write(f"**{symbol}**: {order_flow['description']} (Strength: {order_flow['strength']:.2f})")
+                else:
+                    st.write(f"**{symbol}**: No significant order flow imbalance")
+            except:
+                st.write(f"**{symbol}**: Unable to analyze order flow")
+
+    except Exception as e:
+        st.error(f"Error loading liquidity data: {e}")
+
     # show recent trades if log exists
     try:
-        import pandas as pd
+        try:
+            import pandas as pd
+            PANDAS_AVAILABLE = True
+        except ImportError:
+            PANDAS_AVAILABLE = False
+
         col1, col2 = st.columns([1, 4])
         with col1:
             if st.button("Refresh Trades"):
@@ -82,10 +139,17 @@ BTCUSD""")
                     st.success("Trade log cleared")
                     st.rerun()
         if os.path.exists("trade_log.csv"):
-            df = pd.read_csv("trade_log.csv", header=None,
-                             names=["time","symbol","direction","entry","sl","tp","volume"])
-            st.subheader("Recent trades")
-            st.dataframe(df.tail(20))
+            if PANDAS_AVAILABLE:
+                df = pd.read_csv("trade_log.csv", header=None,
+                                 names=["time","symbol","direction","entry","sl","tp","volume"])
+                st.subheader("Recent trades")
+                st.dataframe(df.tail(20))
+            else:
+                st.subheader("Recent trades")
+                st.info("Pandas not available - cannot display trade log in table format")
+                with open("trade_log.csv", "r") as f:
+                    lines = f.readlines()[-20:]  # Last 20 lines
+                    st.text("".join(lines))
         else:
             st.info("No trade log available yet.")
     except Exception as e:
@@ -172,10 +236,22 @@ if page == "Optimizer":
 
         # Show results if available
         try:
-            import pandas as pd
+            try:
+                import pandas as pd
+                PANDAS_AVAILABLE = True
+            except ImportError:
+                PANDAS_AVAILABLE = False
+
             if os.path.exists("optimization_results.csv"):
-                df = pd.read_csv("optimization_results.csv")
-                st.subheader("Optimization Trials")
-                st.dataframe(df)
+                if PANDAS_AVAILABLE:
+                    df = pd.read_csv("optimization_results.csv")
+                    st.subheader("Optimization Trials")
+                    st.dataframe(df)
+                else:
+                    st.subheader("Optimization Trials")
+                    st.info("Pandas not available - cannot display optimization results in table format")
+                    with open("optimization_results.csv", "r") as f:
+                        content = f.read()
+                        st.text(content[:2000])  # Limit display
         except Exception as e:
             st.error(f"Error loading optimization results: {e}")
